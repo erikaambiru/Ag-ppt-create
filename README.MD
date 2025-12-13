@@ -8,6 +8,66 @@
 
 [python-pptx](https://python-pptx.readthedocs.io/) と [PptxGenJS](https://gitbrent.github.io/PptxGenJS/) を使用した PPTX 自動生成ツールキットです。
 
+---
+
+## 🚀 クイックスタート
+
+### 1. セットアップ（初回のみ）
+
+```powershell
+git clone https://github.com/aktsmm/Ag-ppt-create.git
+cd Ag-ppt-create
+
+# Python 環境
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# Node.js 環境
+npm install
+```
+
+👉 **[詳細なセットアップ手順](docs/SETUP.md)**
+
+### 2. テンプレートを準備
+
+`templates/` フォルダに**普段使っている PowerPoint テンプレート**を入れてください。
+
+```powershell
+# 例：自社テンプレートをコピー
+Copy-Item "C:\Users\あなた\Documents\会社テンプレート.pptx" "templates/"
+```
+
+> 💡 **ポイント**: よく使う PowerPoint をテンプレートとして入れておくと、そのデザイン（配色・フォント・レイアウト）を継承した PPTX が生成されます。
+
+### 3. 使う
+
+VS Code で GitHub Copilot の **Agent モード** → **Orchestrator** を選択して話しかけるだけ。
+
+```
+この記事から PowerPoint 作って
+https://example.com/article
+
+このPPTXを日本語化して
+[英語版PPTX をドラッグ&ドロップ]
+```
+
+Orchestrator が方式・枚数を提案し、**あなたの承認後**に生成を開始します。
+
+---
+
+## 📥 対応する入力
+
+| 入力タイプ   | 例                                            |
+| ------------ | --------------------------------------------- |
+| **URL**      | ブログ記事、ドキュメント、Qiita、Zenn 等      |
+| **PPTX**     | 英語版 PowerPoint（日本語化）                 |
+| **テキスト** | 箇条書きメモ、議事録、要件定義                |
+| **画像**     | スクリーンショット、手書きメモ、図解          |
+| **ファイル** | Markdown、Word、PDF（テキスト抽出可能なもの） |
+
+---
+
 ## ⚖️ ライセンスと使用条件
 
 本プロジェクトは **CC BY-NC-SA 4.0** ライセンスの下で提供されています。
@@ -48,79 +108,11 @@
 
 > 💡 **画像埋め込み対応**: `create_from_template.py`、`create_ja_pptx.py`、`create_pptx.js` は content.json 内の `image` フィールドで画像埋め込みに対応しています。
 
-## セットアップ
-
-### 前提条件
-
-- **PowerPoint** がインストールされていること（PPTX ファイルを開いて確認するため）
-- **Python 3.10+**
-- **Node.js 18+**
-
-👉 **[詳細なセットアップ手順](docs/SETUP.md)**
-
 ## ⚠️ セキュリティ
 
 本プロジェクトは外部モジュールに依存しています。サプライチェーンリスクや脆弱性報告については **[SECURITY.md](.github/SECURITY.md)** を参照してください。
 
 ---
-
-## 使い方
-
-VS Code で GitHub Copilot の **Agent モード** を使用します。
-
-**推奨設定:**
-
-| 項目         | 推奨                                                       |
-| ------------ | ---------------------------------------------------------- |
-| モード       | Agent モード                                               |
-| エージェント | **Orchestrator**（`.github/agents/orchestrator.agent.md`） |
-| モデル       | Claude Opus 4                                              |
-
-### 📥 入力のバリエーション
-
-| 入力タイプ   | 例                                            |
-| ------------ | --------------------------------------------- |
-| **URL**      | ブログ記事、ドキュメント、Qiita、Zenn 等      |
-| **PPTX**     | 英語版 PowerPoint（日本語化）                 |
-| **テキスト** | 箇条書きメモ、議事録、要件定義                |
-| **画像**     | スクリーンショット、手書きメモ、図解          |
-| **ファイル** | Markdown、Word、PDF（テキスト抽出可能なもの） |
-
-### 🚀 基本的な使い方
-
-URL や PPTX を渡して「PowerPoint 作って」と言うだけ。
-
-```
-この記事から PowerPoint 作って
-https://example.com/article
-
-このPPTXを日本語化して
-[英語版PPTX をドラッグ&ドロップ]
-
-この画像の内容をスライドにして
-[画像を貼り付け]
-```
-
-Orchestrator が自動で入力を分類し、**PLAN フェーズで必ずユーザーに確認**します：
-
-1. 入力タイプを判定（URL / PPTX / テキスト等）
-2. 方式・枚数・詳しさの選択肢を提示
-3. **ユーザーが選択するまで待機**（勝手に生成しない）
-4. 承認後に生成開始
-
-> ⚠️ 確認なしに生成まで進めることはありません。必ず PLAN フェーズでユーザー承認を得ます。
-
-### 手動で実行する場合
-
-```powershell
-# テンプレートからプレゼン作成
-python scripts/reorder_slides.py templates/sample.pptx output_manifest/working.pptx 0,3,3,5
-python scripts/extract_shapes.py output_manifest/working.pptx output_manifest/inventory.json
-python scripts/apply_content.py output_manifest/working.pptx output_manifest/replacements.json output_ppt/output.pptx
-
-# 確認
-Start-Process output_ppt/output.pptx
-```
 
 ## エージェントワークフロー
 
