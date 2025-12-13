@@ -208,6 +208,8 @@ Orchestrator が方式・枚数を提案し、**あなたの承認後**に生成
 - **使用ツール**: `reconstruct_analyzer.py` → Localizer Agent → `create_from_template.py`
 - **推奨用途**: 英語版 PPTX を日本語化する場合
 
+> ⚠️ **preserve 方式**（既存シェイプを直接編集）は experimental です。図・グラフで崩れやすいため、現在は reconstruct 方式を推奨しています。
+
 ---
 
 ### クイックチェックリスト
