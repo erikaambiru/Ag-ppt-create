@@ -208,14 +208,6 @@ Orchestrator が方式・枚数を提案し、**あなたの承認後**に生成
 - **使用ツール**: `reconstruct_analyzer.py` → Localizer Agent → `create_from_template.py`
 - **推奨用途**: 英語版 PPTX を日本語化する場合
 
-### 非推奨・統合された方式
-
-| 方式                         | 状態         | 理由                                                   |
-| ---------------------------- | ------------ | ------------------------------------------------------ |
-| **preserve**                 | experimental | 図・グラフで崩れやすい → 現在は reconstruct 方式を推奨 |
-| **html**                     | deprecated   | デザイン品質が低い → template 方式を使用               |
-| **テンプレートベース（旧）** | 統合         | `create_from_template.py` に統合                       |
-
 ---
 
 ### クイックチェックリスト
