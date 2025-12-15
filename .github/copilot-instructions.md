@@ -55,12 +55,25 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 1. **PLAN フェーズでユーザー確認を取る** → 詳細は [plan-phase.instructions.md](instructions/plan-phase.instructions.md)
    - 入力フォーマット: `{枚数}{方式}` 形式（例: `2A`, `3C`）
    - 項番ルール: A=元 PPTX 継承(PPTX 入力時のみ), B=pptxgenjs, C=create_ja_pptx, D〜=テンプレート
-2. **画像取得を最初に行う**（Web ソース時）
+   - **★ テンプレート動的取得必須**: `Get-ChildItem -Path "templates" -Filter "*.pptx"` で取得して D〜に展開
+2. **PREPARE_TEMPLATE フェーズを必ず実行**（外部テンプレート使用時）
+   - `diagnose_template.py` → `clean_template.py` → `analyze_template.py`
+   - layouts.json に `content_with_image` マッピングを追加（Two Column レイアウト）
+   - スキップすると背景画像重複やレイアウト崩れが発生
+3. **画像取得を最初に行う**（Web ソース時）
    - `fetch_webpage` は画像 URL を返さない場合がある → `curl` で HTML を取得して抽出
    - コードブロックも同様に `<pre><code>` を抽出
-3. **IR 生成直後に `validate_content.py` を実行**（スキーマ・空スライド・画像パス・items 形式を自動検証）
-4. **セクションスライドには subtitle を必須化**（空っぽに見える問題を防止）
-5. **PPTX 生成後は PowerPoint で開く**: `Start-Process "output_ppt/{base}.pptx"`
+4. **IR 生成直後に `validate_content.py` を実行**（スキーマ・空スライド・画像パス・items 形式を自動検証）
+5. **セクションスライドには subtitle を必須化**（空っぽに見える問題を防止）
+   - ⚠️ 一部テンプレートでは title/subtitle が重なる → 重なる場合は subtitle を削除してノートに移動
+6. **photo タイプは極力使わない** → `type: "content"` + `image` を推奨
+   - photo タイプは items を持たないため説明が消失しやすい
+   - `position: "center"` で縦長画像がはみ出す問題が発生しやすい
+7. **スピーカーノートを充実させる** → 「出典」だけでは不十分 ★ NEW
+   - section: セクションの目的、扱うトピックの概要（3-5 行）
+   - content: 各項目の詳細説明、背景情報（5-10 行）
+   - 詳細は [quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) を参照
+8. **PPTX 生成後は PowerPoint で開く**: `Start-Process "output_ppt/{base}.pptx"`
 
 ## テンプレートサイズに関する注意
 
@@ -84,6 +97,7 @@ python -c "from pptx import Presentation; p=Presentation('templates/xxx.pptx'); 
 | ------------------ | --------------------------------------- | ---------- |
 | 英語 PPTX → 日本語 | reconstruct + create_from_template      | ⭐⭐⭐⭐⭐ |
 | テンプレート利用   | analyze_template + create_from_template | ⭐⭐⭐⭐⭐ |
+| テンプレートがない | create_clean_template + 上記            | ⭐⭐⭐⭐⭐ |
 | 白紙から新規作成   | create_ja_pptx.py                       | ⭐⭐⭐⭐   |
 | コード多め         | pptxgenjs                               | ⭐⭐⭐⭐   |
 | preserve           | experimental（今後改善予定）            | ⭐⭐       |
@@ -135,5 +149,7 @@ python -c "from pptx import Presentation; p=Presentation('templates/xxx.pptx'); 
 ```
 
 ---
+
+> 📖 **詳細が必要な場合**: 上記の参照ドキュメントを確認してください。
 
 > 📖 **詳細が必要な場合**: 上記の参照ドキュメントを確認してください。

@@ -34,12 +34,146 @@ const COLORS = {
   darkGray: "333333",
   white: "FFFFFF",
   lightGray: "F5F5F5",
+  darkBlue: "1E3A5F", // Dark background threshold reference
 };
 
 const FONTS = {
   title: "Yu Gothic UI",
   body: "Yu Gothic UI",
 };
+
+/**
+ * Determine if a background color is dark (needs white text)
+ * @param {string} hexColor - Hex color without # (e.g., "5B5FC7")
+ * @returns {boolean} True if background is dark
+ */
+function isDarkColor(hexColor) {
+  if (!hexColor) return false;
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  // Calculate relative luminance (perceived brightness)
+  // Formula: 0.299*R + 0.587*G + 0.114*B
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luminance < 128; // Dark if luminance < 50%
+}
+
+/**
+ * Get text color based on slide background
+ * @param {Object} slideData - Slide data with optional background field
+ * @param {string} defaultColor - Default color to use
+ * @returns {string} Appropriate text color
+ */
+function getTextColor(slideData, defaultColor) {
+  // Check for explicit dark background flag or background image
+  if (slideData.dark_background || slideData.darkBackground) {
+    return COLORS.white;
+  }
+  // Check for background color
+  if (slideData.background_color) {
+    return isDarkColor(slideData.background_color)
+      ? COLORS.white
+      : defaultColor;
+  }
+  // Check for background image (usually dark in presentations)
+  if (slideData.background_image || slideData.backgroundImage) {
+    return COLORS.white;
+  }
+  return defaultColor;
+}
+
+// Slide dimensions (16:9)
+const SLIDE_WIDTH = 13.333;
+const SLIDE_HEIGHT = 7.5;
+
+/**
+ * Get image dimensions from local file
+ * @param {string} imagePath - Path to image file
+ * @returns {{width: number, height: number}|null} Image dimensions in pixels
+ */
+function getImageSize(imagePath) {
+  try {
+    // Try using image-size package if available
+    const sizeOf = require("image-size");
+    const dimensions = sizeOf(imagePath);
+    return { width: dimensions.width, height: dimensions.height };
+  } catch {
+    // Fallback: read PNG/JPEG headers manually
+    try {
+      const buffer = fs.readFileSync(imagePath);
+      // PNG: width at bytes 16-19, height at bytes 20-23
+      if (
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47
+      ) {
+        const width = buffer.readUInt32BE(16);
+        const height = buffer.readUInt32BE(20);
+        return { width, height };
+      }
+      // JPEG: search for SOF0 marker
+      if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+        let offset = 2;
+        while (offset < buffer.length) {
+          if (buffer[offset] !== 0xff) break;
+          const marker = buffer[offset + 1];
+          if (marker >= 0xc0 && marker <= 0xc3) {
+            const height = buffer.readUInt16BE(offset + 5);
+            const width = buffer.readUInt16BE(offset + 7);
+            return { width, height };
+          }
+          const segmentLength = buffer.readUInt16BE(offset + 2);
+          offset += 2 + segmentLength;
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+    return null;
+  }
+}
+
+/**
+ * Detect if image is likely an icon/logo based on size
+ * @param {string} imagePath - Path to image file
+ * @param {number} minContentSize - Minimum size for content images (default 400px)
+ * @returns {{isIcon: boolean, suggestedPct: number}} Detection result
+ */
+function isIconOrLogo(imagePath, minContentSize = 400) {
+  const size = getImageSize(imagePath);
+  if (!size) {
+    return { isIcon: false, suggestedPct: 45 };
+  }
+
+  const { width, height } = size;
+
+  // Very small images (< 400px) are likely icons
+  if (width < minContentSize || height < minContentSize) {
+    const suggested = Math.min(
+      20,
+      Math.max(10, Math.round((width / SLIDE_WIDTH / 96) * 100 * 1.2))
+    );
+    return { isIcon: true, suggestedPct: suggested };
+  }
+
+  // Square images under 800px are likely logos
+  const aspectRatio = width / height;
+  if (
+    aspectRatio >= 0.9 &&
+    aspectRatio <= 1.1 &&
+    Math.max(width, height) <= 800
+  ) {
+    const suggested = Math.min(
+      25,
+      Math.max(15, Math.round((width / SLIDE_WIDTH / 96) * 100 * 1.2))
+    );
+    return { isIcon: true, suggestedPct: suggested };
+  }
+
+  return { isIcon: false, suggestedPct: 45 };
+}
 
 /**
  * Download image from URL and return as base64
@@ -166,14 +300,30 @@ function addTitleSlide(pptx, slideData) {
 async function addContentSlide(pptx, slideData, basePath) {
   const slide = pptx.addSlide();
 
-  // Title bar
-  slide.addShape("rect", {
-    x: 0,
-    y: 0,
-    w: "100%",
-    h: 1.0,
-    fill: { color: COLORS.purple },
-  });
+  // Detect if slide has dark background (for text color decisions)
+  const hasDarkBg =
+    slideData.dark_background ||
+    slideData.darkBackground ||
+    slideData.background_image ||
+    slideData.backgroundImage ||
+    (slideData.background_color && isDarkColor(slideData.background_color));
+  const bodyTextColor = hasDarkBg ? COLORS.white : COLORS.darkGray;
+
+  // Apply background if specified
+  if (slideData.background_color) {
+    slide.background = { color: slideData.background_color.replace("#", "") };
+  }
+
+  // Title bar (only if not using full dark background)
+  if (!hasDarkBg) {
+    slide.addShape("rect", {
+      x: 0,
+      y: 0,
+      w: "100%",
+      h: 1.0,
+      fill: { color: COLORS.purple },
+    });
+  }
 
   // Title text
   slide.addText(slideData.title || "", {
@@ -195,12 +345,24 @@ async function addContentSlide(pptx, slideData, basePath) {
     const imagePath = await resolveImage(slideData.image, basePath);
     if (imagePath) {
       const position = slideData.image.position || "right";
-      const widthPct = slideData.image.width_percent || 45;
+      let widthPct = slideData.image.width_percent || 45;
       const heightPct = slideData.image.height_percent || 50;
 
+      // Detect icons/logos and limit their size (only for local files)
+      const isDataUri = imagePath.startsWith("data:");
+      if (!isDataUri) {
+        const { isIcon, suggestedPct } = isIconOrLogo(imagePath);
+        if (isIcon) {
+          const size = getImageSize(imagePath);
+          console.log(
+            `    [i] Icon/logo detected (${size?.width}x${size?.height}px) - using size: ${suggestedPct}%`
+          );
+          widthPct = Math.min(widthPct, suggestedPct);
+        }
+      }
+
       try {
-        // Check if imagePath is a data URI (from URL download)
-        const isDataUri = imagePath.startsWith("data:");
+        // Build image options
         const imageOpts = isDataUri ? { data: imagePath } : { path: imagePath };
 
         if (position === "full") {
@@ -214,13 +376,30 @@ async function addContentSlide(pptx, slideData, basePath) {
           });
           return slide; // No text content for full image
         } else if (position === "right") {
-          // Image on right
+          // Image on right - calculate height based on actual aspect ratio
           const imgW = (13.333 * widthPct) / 100;
-          const imgH = 5.0; // Fixed height for right-aligned images
+          const imgY = 1.5;
+          const imgX = 13.333 - 0.5 - imgW;
+          const maxImgH = 5.0; // Maximum height to fit in content area
+
+          // Get actual image dimensions to maintain aspect ratio
+          let imgH = maxImgH; // Default
+          if (!isDataUri) {
+            const size = getImageSize(imagePath);
+            if (size && size.width && size.height) {
+              const aspectRatio = size.height / size.width;
+              imgH = imgW * aspectRatio;
+              // Cap height if too tall
+              if (imgH > maxImgH) {
+                imgH = maxImgH;
+              }
+            }
+          }
+
           slide.addImage({
             ...imageOpts,
-            x: 13.333 - 0.5 - imgW,
-            y: 1.5,
+            x: imgX,
+            y: imgY,
             w: imgW,
             h: imgH,
           });
@@ -236,6 +415,30 @@ async function addContentSlide(pptx, slideData, basePath) {
             h: imgH,
           });
           contentArea.h = (7.5 * (100 - heightPct - 20)) / 100;
+        } else if (position === "center") {
+          // Image centered (for photo slides)
+          // Note: Limit width to prevent tall images from exceeding slide bounds
+          // Available height = 7.5 - 1.5 (title) - 0.3 (margin) = 5.7"
+          const maxWidth = 60; // Limit to 60% to prevent overflow with tall images
+          const effectiveWidthPct = Math.min(widthPct, maxWidth);
+          const imgW = (13.333 * effectiveWidthPct) / 100;
+          const imgX = (13.333 - imgW) / 2;
+          const availableHeight = 5.5; // Conservative estimate
+
+          if (widthPct > maxWidth) {
+            console.log(
+              `    [i] Center image width limited: ${widthPct}% → ${maxWidth}% (to fit slide height)`
+            );
+          }
+
+          slide.addImage({
+            ...imageOpts,
+            x: imgX,
+            y: 1.5,
+            w: imgW,
+            h: availableHeight, // Let pptxgenjs scale proportionally if image is shorter
+          });
+          contentArea = null; // No content area for centered images
         }
       } catch (err) {
         console.warn(`  ⚠️  Failed to add image: ${err.message}`);
@@ -243,7 +446,10 @@ async function addContentSlide(pptx, slideData, basePath) {
     }
   }
 
-  // Content bullets
+  // Content bullets (skip if content area was nullified by full/center image)
+  if (!contentArea) {
+    return slide;
+  }
   const items = slideData.items || slideData.content || [];
   if (items.length > 0) {
     const textContent = items.map((item) => {
@@ -260,7 +466,7 @@ async function addContentSlide(pptx, slideData, basePath) {
       h: contentArea.h,
       fontSize: 20,
       fontFace: FONTS.body,
-      color: COLORS.darkGray,
+      color: bodyTextColor, // Dynamic: white on dark bg, dark gray on light bg
       valign: "top",
       paraSpaceAfter: 8,
     });
@@ -508,7 +714,24 @@ async function main() {
     switch (type) {
       case "title":
       case "closing":
-        slide = addTitleSlide(pptx, slideData);
+        // If title/closing has image, use small image (avoid oversized presenter photos)
+        if (slideData.image) {
+          // Limit image size for title slides (e.g., presenter photos)
+          const titleSlideData = { ...slideData };
+          if (titleSlideData.image) {
+            titleSlideData.image = {
+              ...titleSlideData.image,
+              width_percent: Math.min(
+                titleSlideData.image.width_percent || 25,
+                25
+              ),
+              position: titleSlideData.image.position || "right",
+            };
+          }
+          slide = await addContentSlide(pptx, titleSlideData, basePath);
+        } else {
+          slide = addTitleSlide(pptx, slideData);
+        }
         break;
       case "section":
       case "section_title":

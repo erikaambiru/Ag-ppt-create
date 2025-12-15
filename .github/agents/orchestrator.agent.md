@@ -99,12 +99,49 @@ INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE] → TRANS
 - **INIT**: `classify_input.py` で入力分類、classification.json 生成
 - **PLAN（ユーザー確認必須）**: 下記「PLAN フェーズの確認プロセス」に従い承認を得る
   - **★ Web ソースの場合**: 画像・コードブロックの有無を事前確認（`curl` で HTML 取得）
-- **PREPARE_TEMPLATE**: テンプレート品質診断・クリーニング
-  - `diagnose_template.py` で問題検出
-  - 問題があれば `clean_template.py` でクリーニング
+- **PREPARE_TEMPLATE（★ 必須・スキップ禁止）**: テンプレート品質診断・クリーニング
+  - `diagnose_template.py` で問題検出（背景画像、壊れた参照等）
+  - 問題があれば `clean_template.py` でクリーニング → `{base}_clean_template.pptx`
+  - `analyze_template.py` → layouts.json 生成
+  - **★ layouts.json に `content_with_image` マッピングを追加**（Two Column レイアウト）
   - **★ テンプレートサイズを確認**（10.0 インチ等の非標準サイズに注意）
+
+### PREPARE_TEMPLATE 手順（★ 重要）
+
+```powershell
+$base = "20251214_example"
+$input = "input/source.pptx"
+
+# 1. テンプレート診断
+python scripts/diagnose_template.py $input
+
+# 2. 問題があればクリーニング（背景画像削除等）
+python scripts/clean_template.py $input "output_manifest/${base}_clean_template.pptx"
+$template = "output_manifest/${base}_clean_template.pptx"
+# 問題がなければ: $template = $input
+
+# 3. レイアウト分析
+python scripts/analyze_template.py $template
+# → output_manifest/{template_stem}_layouts.json が生成される
+
+# 4. layouts.json を確認し、content_with_image マッピングを追加
+# Two Column レイアウト（通常 Layout 5 or 6）を content_with_image にマッピング
+```
+
+**layouts.json 推奨マッピング:**
+```json
+{
+  "layout_mapping": {
+    "content_with_image": 6,  // ★ 必須: content + image で使用
+    // ... 他のマッピング
+  }
+}
+```
+
+> ⚠️ `content_with_image` がないと、`type: "content"` + `image` のスライドで画像がテキストと重なる
+
 - **EXTRACT**: 以下を並列実行可能
-  - `analyze_template.py` → layouts.json
+  - `analyze_template.py` → layouts.json（PREPARE_TEMPLATE で未実行の場合）
   - `extract_images.py` → images/（PPTXソース時）
   - **★ Web ソースの場合**: `curl` で画像URLを抽出 → `images/{base}/` にダウンロード
   - `reconstruct_analyzer.py --classification classification.json` → content.json
@@ -118,18 +155,57 @@ INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE] → TRANS
   - FAIL → TRANSLATE または SUMMARIZE に差し戻し
   - WARN → ユーザーに警告表示、続行確認
 - **BUILD**: `create_from_template.py` で PPTX 生成
+  - **★ `--auto-clean` オプション推奨**: 元PPTXをテンプレートとして使う場合、自動でクリーニングを実行
   - **★ テンプレートサイズに応じて画像・コードブロック位置を自動調整**
+  - 暗い背景や装飾シェイプが残っている場合、`--auto-clean` で自動除去される
 - **REVIEW(PPTX)**:
   - `validate_pptx.py` で自動検証
   - Reviewer に委譲して AI 判断
   - FAIL → 問題を報告、手動修正を促す
   - PASS → DONE へ
 
+### REVIEW(PPTX) チェックリスト（★ 重要）
+
+`create_from_template.py` は多くの問題を自動修正。`validate_pptx.py` でスピーカーノート品質も自動検出：
+
+| チェック項目                         | 確認方法                              | 自動検出 |
+| ------------------------------------ | ------------------------------------- | -------- |
+| セクションタイトルの位置             | 動的調整（20%-60%範囲外のみ修正）     | ✅       |
+| セクションサブタイトルのサイズ       | 24pt で読みやすいか                   | ✅       |
+| セクションタイトル/サブタイトル重なり| 動的に検出して自動調整               | ✅       |
+| content+image の重なり               | Two Column レイアウトが使われているか | ✅       |
+| 空プレースホルダー                   | 「テキストを入力」が残っていないか    | ✅       |
+| スピーカーノートの充実度             | validate_pptx.py が「出典のみ」を検出 | ✅ 警告  |
+| 画像のはみ出し                       | 下端・右端を確認                      | ✅       |
+
+> `validate_pptx.py` がノートの品質問題を警告します。警告が出たら Localizer/Summarizer に再依頼してください。
+
 ## PLAN フェーズの確認プロセス（★ 必須）
 
 **詳細は [plan-phase.instructions.md](../instructions/plan-phase.instructions.md) を参照。**
 
 PLAN フェーズでは**必ずユーザーに確認**してから次に進む。確認なしに BUILD まで進めることは禁止。
+
+### 🚨 テンプレート動的取得（★ 必須）
+
+PLANフェーズ開始時に、**必ず**以下のコマンドでテンプレートを取得し、D〜の選択肢として表示すること：
+
+```powershell
+# ★ PLANフェーズ開始時に必ず実行
+Get-ChildItem -Path "templates" -Filter "*.pptx" | Select-Object -ExpandProperty Name
+```
+
+取得結果を D, E, F... の順に割り当てて表示：
+
+```
+# 例:
+sample-ppf.pptx              → D
+Security - IgniteUpdate.pptx → E
+template.pptx                → F
+入力業務のルールについて.pptx → G
+```
+
+> ⚠️ **禁止**: 「templates/*.pptx」のような抽象的な表記。具体的なファイル名を展開すること。
 
 ### デフォルト動作
 
@@ -256,11 +332,27 @@ python scripts/reconstruct_analyzer.py $input "output_manifest/${base}_content.j
 # VALIDATE
 python scripts/validate_content.py "output_manifest/${base}_content_ja.json"
 
-# BUILD
-python scripts/create_from_template.py $input "output_manifest/${base}_content_ja.json" "output_ppt/${base}.pptx"
+# BUILD（★ --auto-clean 推奨）
+# 元PPTXに暗い背景や装飾が含まれる場合、--auto-clean で自動クリーニング
+python scripts/create_from_template.py $input "output_manifest/${base}_content_ja.json" "output_ppt/${base}.pptx" --auto-clean
 
 # DONE
 Start-Process "output_ppt/${base}.pptx"
+```
+
+### --auto-clean オプションの動作
+
+`--auto-clean` を指定すると、以下が自動実行されます：
+
+1. `diagnose_template.py --json` でテンプレート診断
+2. 問題検出時 → `create_clean_template.py --all` でクリーニング
+3. クリーンなテンプレートを使用して PPTX 生成
+
+```powershell
+# 手動でクリーニングする場合（--auto-clean を使わない場合）
+python scripts/diagnose_template.py $input
+python scripts/create_clean_template.py $input "output_manifest/${base}_clean_template.pptx" --all
+python scripts/create_from_template.py "output_manifest/${base}_clean_template.pptx" "output_manifest/${base}_content_ja.json" "output_ppt/${base}.pptx"
 ```
 
 ## 連携

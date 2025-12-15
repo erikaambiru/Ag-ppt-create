@@ -12,9 +12,20 @@ Validate generated PPTX against content.json.
 This script provides deterministic validation for PPTX files.
 It checks:
 1. Slide count matches content.json
-2. Speaker notes existence
+2. Speaker notes existence and quality (detects "source-only" notes)
 3. Image placement verification
-4. Basic structure validation
+4. Text overflow detection (excessive text, too many paragraphs)
+5. Basic structure validation
+
+Speaker notes quality checks:
+- Detects notes with only source citations (e.g., "[出典: ...]")
+- Warns when notes are too short (<30 chars)
+- Suggests adding talking points and context
+
+Text overflow checks:
+- Detects shapes with >800 characters (potential overflow)
+- Detects shapes with >15 paragraphs
+- Detects lines >120 characters (horizontal overflow risk)
 
 Usage:
     python scripts/validate_pptx.py <output.pptx> <content.json>
@@ -28,6 +39,7 @@ Exit codes:
 
 import argparse
 import json
+import re
 import sys
 import io
 from pathlib import Path
@@ -127,6 +139,7 @@ def get_slide_info(pptx_path: str) -> List[Dict[str, Any]]:
             "slide_number": idx,
             "has_notes": False,
             "notes_length": 0,
+            "notes_text": "",  # Store actual notes text for quality check
             "has_images": False,
             "image_count": 0,
             "has_title": False,
@@ -140,6 +153,7 @@ def get_slide_info(pptx_path: str) -> List[Dict[str, Any]]:
             if notes_text:
                 info["has_notes"] = True
                 info["notes_length"] = len(notes_text)
+                info["notes_text"] = notes_text  # Store for quality analysis
         
         # Check shapes
         for shape in slide.shapes:
@@ -185,18 +199,60 @@ def validate_slide_count(result: ValidationResult, pptx_path: str, content: Dict
 
 
 def validate_notes(result: ValidationResult, slides_info: List[Dict[str, Any]], content: Dict[str, Any]):
-    """Validate speaker notes existence."""
+    """Validate speaker notes existence and quality."""
     slides = content.get("slides", [])
     non_skipped = [s for s in slides if not s.get("_skip", False)]
     
     missing_notes = []
+    insufficient_notes = []
+    source_only_notes = []
+    
+    # Patterns that indicate "source only" notes (insufficient content)
+    SOURCE_ONLY_PATTERNS = [
+        r"^\s*\[出典:.*?\]\s*$",  # Only source citation (Japanese)
+        r"^\s*---\s*\n?\s*\[出典:.*?\]\s*$",  # Separator + source citation only
+        r"^\s*\[?Source:.*?\]?\s*$",  # English source only
+        r"^\s*\[新規作成\]\s*$",  # Only "newly created" marker
+        r"^\s*---\s*\n?\s*\[新規作成\]\s*$",  # Separator + newly created only
+    ]
+    
+    # Minimum notes length (excluding source citations)
+    MIN_NOTES_LENGTH = 30
     
     for idx, (slide_info, content_slide) in enumerate(zip(slides_info, non_skipped), 1):
         # Check if content.json expects notes
         expected_notes = content_slide.get("notes", "")
+        slide_type = content_slide.get("type", "content")
         
         if expected_notes and not slide_info["has_notes"]:
             missing_notes.append(idx)
+        
+        # Check notes quality (only for content/section slides with notes)
+        if slide_info["has_notes"] and slide_type in ["content", "section", "two_column", "photo"]:
+            notes_text = slide_info.get("notes_text", "")
+            notes_length = slide_info.get("notes_length", 0)
+            
+            # Check if notes match "source only" patterns
+            is_source_only = False
+            for pattern in SOURCE_ONLY_PATTERNS:
+                if re.match(pattern, notes_text, re.MULTILINE | re.DOTALL):
+                    is_source_only = True
+                    break
+            
+            if is_source_only:
+                source_only_notes.append({
+                    "slide": idx,
+                    "type": slide_type,
+                    "preview": notes_text[:50] + "..." if len(notes_text) > 50 else notes_text
+                })
+            elif notes_length < MIN_NOTES_LENGTH:
+                # Check if notes are too short (but not source-only)
+                insufficient_notes.append({
+                    "slide": idx,
+                    "type": slide_type,
+                    "length": notes_length,
+                    "reason": "too_short"
+                })
     
     if missing_notes:
         result.add_warning(
@@ -204,6 +260,24 @@ def validate_notes(result: ValidationResult, slides_info: List[Dict[str, Any]], 
             f"slides {missing_notes}",
             f"{len(missing_notes)} slides are missing expected speaker notes",
             "Speaker notes may not have been applied correctly"
+        )
+    
+    if source_only_notes:
+        source_slides = [n["slide"] for n in source_only_notes]
+        result.add_warning(
+            "source_only_notes",
+            f"slides {source_slides}",
+            f"{len(source_only_notes)} slides have only source citations in notes (no actual content)",
+            "Add talking points, background info, or context for the presenter"
+        )
+    
+    if insufficient_notes:
+        short_slides = [n["slide"] for n in insufficient_notes]
+        result.add_warning(
+            "insufficient_notes",
+            f"slides {short_slides}",
+            f"{len(insufficient_notes)} slides have very short speaker notes (<{MIN_NOTES_LENGTH} chars)",
+            "Consider adding more detail: background info, talking points, or context"
         )
     
     # Count slides without notes
@@ -253,6 +327,71 @@ def validate_images(result: ValidationResult, slides_info: List[Dict[str, Any]],
         "global",
         f"Total images in PPTX: {total_images}"
     )
+
+
+def validate_text_overflow(result: ValidationResult, pptx_path: str):
+    """
+    Check for text overflow issues in PPTX.
+    
+    Detects:
+    - Excessively long text in a single shape (>500 chars)
+    - Too many paragraphs in a single shape (>15)
+    - Very long lines that may cause horizontal overflow
+    """
+    try:
+        prs = Presentation(pptx_path)
+    except Exception:
+        return  # Already handled in main validation
+    
+    overflow_slides = []
+    long_text_slides = []
+    
+    for slide_idx, slide in enumerate(prs.slides, 1):
+        for shape in slide.shapes:
+            if not hasattr(shape, "text_frame") or not shape.has_text_frame:
+                continue
+            
+            text_frame = shape.text_frame
+            text_content = text_frame.text
+            
+            # Check for very long text (potential overflow)
+            if len(text_content) > 800:
+                long_text_slides.append(slide_idx)
+            
+            # Check paragraph count
+            para_count = len(text_frame.paragraphs)
+            if para_count > 15:
+                overflow_slides.append(slide_idx)
+            
+            # Check for very long single lines (may cause horizontal overflow)
+            for para in text_frame.paragraphs:
+                line_text = para.text
+                if len(line_text) > 120:
+                    if slide_idx not in overflow_slides:
+                        overflow_slides.append(slide_idx)
+    
+    if overflow_slides:
+        result.add_warning(
+            "potential_overflow",
+            f"slides {sorted(set(overflow_slides))}",
+            f"{len(set(overflow_slides))} slides may have text overflow",
+            "Review these slides for text overflow or excessive content"
+        )
+    
+    if long_text_slides:
+        result.add_warning(
+            "long_text",
+            f"slides {sorted(set(long_text_slides))}",
+            f"{len(set(long_text_slides))} slides have very long text (>800 chars)",
+            "Consider splitting content across multiple slides"
+        )
+    
+    if not overflow_slides and not long_text_slides:
+        result.add_info(
+            "text_overflow_check",
+            "global",
+            "No text overflow issues detected"
+        )
 
 
 def validate_signature(result: ValidationResult, slides_info: List[Dict[str, Any]]):
@@ -331,6 +470,9 @@ def validate_pptx(pptx_path: str, content_path: str = None) -> ValidationResult:
             validate_slide_count(result, pptx_path, content)
             validate_notes(result, slides_info, content)
             validate_images(result, slides_info, content)
+    
+    # Always check text overflow
+    validate_text_overflow(result, pptx_path)
     
     # Always check signature
     validate_signature(result, slides_info)

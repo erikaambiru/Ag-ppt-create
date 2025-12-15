@@ -241,18 +241,36 @@ def print_report(report: dict) -> None:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python scripts/diagnose_template.py <template.pptx>")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Diagnose PPTX template for potential issues')
+    parser.add_argument('template', help='Path to template PPTX file')
+    parser.add_argument('--json', action='store_true', help='Output as JSON (for scripting)')
+    
+    args = parser.parse_args()
+    
+    if not Path(args.template).exists():
+        if args.json:
+            import json
+            print(json.dumps({"error": f"File not found: {args.template}"}))
+        else:
+            print(f"Error: File not found: {args.template}")
         sys.exit(1)
     
-    template_path = sys.argv[1]
+    report = diagnose_template(args.template)
     
-    if not Path(template_path).exists():
-        print(f"Error: File not found: {template_path}")
-        sys.exit(1)
-    
-    report = diagnose_template(template_path)
-    print_report(report)
+    if args.json:
+        import json
+        # Output JSON for scripting
+        output = {
+            "clean": report['clean'],
+            "total_issues": report['summary']['total'],
+            "summary": report['summary'],
+            "issues": report['issues']
+        }
+        print(json.dumps(output))
+    else:
+        print_report(report)
     
     # Exit code: 0 if clean, 1 if issues found
     sys.exit(0 if report['clean'] else 1)

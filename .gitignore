@@ -36,6 +36,7 @@ workspace/slides/*
 templates/*.pptx
 !templates/sample.pptx
 !templates/template.pptx
+templates/taihi/
 
 # Input files (keep README only)
 input/*
@@ -45,3 +46,8 @@ input/*
 images/*
 !images/.gitkeep
 !images/README.md
+
+# Azure Update workflow (customer-specific)
+.github/instructions/azure-update-workflow.instructions.md
+scripts/reorganize_azure_update.py
+output_manifest/_tmp_*.py

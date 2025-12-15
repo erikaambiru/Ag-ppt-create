@@ -18,6 +18,75 @@
 
 ---
 
+## 🔄 レビュー実行順序（★ 重要：W2 対応）
+
+**自動検証スクリプト → AI エージェントレビュー の順で実行する。**
+
+### JSON レビュー手順
+
+```
+Step 1: validate_content.py（自動検証）
+    ↓
+    スキーマ違反・空スライド・画像パス → exit 1 なら即 FAIL
+    ↓
+Step 2: Reviewer Agent（AI 判断）
+    ↓
+    翻訳品質・技術用語・内容一貫性をチェック
+    ↓
+    最終判定（PASS / WARN / FAIL）
+```
+
+**コマンド:**
+
+```powershell
+# Step 1: 自動検証（必須・先に実行）
+python scripts/validate_content.py "output_manifest/{base}_content_ja.json"
+# exit code: 0=PASS, 1=FAIL, 2=WARN
+
+# Step 2: AI レビュー（自動検証 PASS 後のみ）
+# → Reviewer Agent を呼び出し
+```
+
+### PPTX レビュー手順
+
+```
+Step 1: validate_pptx.py（自動検証）
+    ↓
+    スライド数不一致・ノート欠落 → exit 1 なら即 FAIL
+    ↓
+Step 2: Reviewer Agent（AI 判断）
+    ↓
+    オーバーフロー・レイアウト崩れを目視確認
+    ↓
+    最終判定（PASS / WARN / FAIL）
+```
+
+**コマンド:**
+
+```powershell
+# Step 1: 自動検証（必須・先に実行）
+python scripts/validate_pptx.py "output_ppt/{base}.pptx" "output_manifest/{base}_content_ja.json"
+
+# Step 2: AI レビュー（自動検証 PASS 後のみ）
+# → Reviewer Agent を呼び出し
+```
+
+### 責務の明確な分離
+
+| 検証項目             | 担当                  | 理由                        |
+| -------------------- | --------------------- | --------------------------- |
+| スキーマ準拠         | `validate_content.py` | 決定論的（JSON Schema）     |
+| 空スライド検出       | `validate_content.py` | 決定論的（フィールド有無）  |
+| 画像パス存在         | `validate_content.py` | 決定論的（ファイル存在）    |
+| スライド数一致       | `validate_pptx.py`    | 決定論的（数値比較）        |
+| **翻訳品質**         | **Reviewer Agent**    | AI 判断必須（自然さ評価）   |
+| **技術用語の適切さ** | **Reviewer Agent**    | AI 判断必須（ドメイン知識） |
+| **内容の一貫性**     | **Reviewer Agent**    | AI 判断必須（文脈理解）     |
+| **オーバーフロー**   | **Reviewer Agent**    | AI 判断推奨（視覚的確認）   |
+| **出典表記の適切さ** | **Reviewer Agent**    | AI 判断必須（統合時の判断） |
+
+---
+
 ## ⭐ レビュー観点と合否基準（必須）
 
 ### JSON レビュー合否基準
@@ -87,8 +156,23 @@ EXTRACT → TRANSLATE → [REVIEW(JSON)] → BUILD → [REVIEW(PPTX)] → DONE
 | コンテンツ | 空スライド（items/image なし）       | エラー |
 | コンテンツ | 手動箇条書き記号の混入               | エラー |
 | コンテンツ | テキスト長のオーバーフロー           | 警告   |
+| **ノート** | **出典のみで内容が薄いノート**       | 警告   |
 | 画像       | 参照パスの存在確認                   | エラー |
+| 画像       | `photo` タイプの使用（非推奨）       | 警告   |
 | 出典       | 出典表記の有無（元 PPTX 由来の場合） | 警告   |
+
+### ⚠️ スピーカーノートの充実度チェック（★ 重要）
+
+**チェック内容:**
+
+1. ノートが「[出典: 元スライド #XX]」のみで内容がない
+2. ノートが 2 行未満（section スライドの場合）
+3. ノートが空（notes フィールドがない、または空文字）
+
+**判定:**
+
+- 出典のみのノートが 3 つ以上 → **WARN**
+- section スライドのノートが出典のみ → **WARN**
 
 ### PPTX レビュー（生成後）
 
@@ -97,6 +181,22 @@ EXTRACT → TRANSLATE → [REVIEW(JSON)] → BUILD → [REVIEW(PPTX)] → DONE
 ```powershell
 python scripts/validate_pptx.py "output_ppt/{base}.pptx" "output_manifest/{base}_content_ja.json"
 ```
+
+### ⚠️ content + image スライドのレイアウト確認（★ 重要）
+
+**問題**: `type: "content"` + `image` のスライドで画像がテキストと重なる
+
+**確認ポイント:**
+
+1. layouts.json に `content_with_image` マッピングがあるか
+2. Two Column レイアウト（Layout 5 or 6）が使用されているか
+3. テンプレートがクリーニング済みか（背景画像が残っていないか）
+
+**PPTX 目視確認:**
+
+- 画像とテキストが重なっていないか
+- 背景に不要な装飾画像がないか
+- レイアウトが崩れていないか
 
 | カテゴリ       | チェック項目                         | 重要度 | 自動/AI |
 | -------------- | ------------------------------------ | ------ | ------- |

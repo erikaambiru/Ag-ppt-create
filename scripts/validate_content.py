@@ -109,14 +109,99 @@ def load_schema() -> Dict[str, Any]:
         return json.load(f)
 
 
+def parse_semver(version: str) -> Tuple[int, int, int]:
+    """
+    Parse semantic version string to tuple.
+    
+    Args:
+        version: Version string like "1.0.0"
+        
+    Returns:
+        Tuple of (major, minor, patch)
+    """
+    parts = version.split(".")
+    if len(parts) != 3:
+        return (0, 0, 0)
+    try:
+        return (int(parts[0]), int(parts[1]), int(parts[2]))
+    except ValueError:
+        return (0, 0, 0)
+
+
+def check_schema_version_compatibility(
+    content_version: str, 
+    schema_version: str, 
+    result: ValidationResult
+) -> bool:
+    """
+    Check if content schema_version is compatible with current schema.
+    
+    Compatibility rules:
+    - Major version must match (breaking changes)
+    - Content minor version <= Schema minor version (new features)
+    - Patch version is ignored (bug fixes)
+    
+    Args:
+        content_version: Version from content.json (e.g., "1.0.0")
+        schema_version: Version from content.schema.json (e.g., "1.0.0")
+        result: ValidationResult to add warnings/errors
+        
+    Returns:
+        True if compatible, False otherwise
+    """
+    content_ver = parse_semver(content_version)
+    schema_ver = parse_semver(schema_version)
+    
+    # Major version mismatch = incompatible
+    if content_ver[0] != schema_ver[0]:
+        result.add_error(
+            "schema_version",
+            "schema_version",
+            f"Major version mismatch: content={content_version}, schema={schema_version}",
+            f"Content was created with schema v{content_version}, but current schema is v{schema_version}. "
+            "Major version changes indicate breaking changes. Please migrate the content."
+        )
+        return False
+    
+    # Content minor version > Schema minor version = potentially incompatible
+    if content_ver[1] > schema_ver[1]:
+        result.add_warning(
+            "schema_version",
+            "schema_version",
+            f"Content uses newer schema features: content={content_version}, schema={schema_version}",
+            "Some features in this content may not be supported. Consider updating the schema."
+        )
+    
+    return True
+
+
+def validate_schema_version(content: Dict[str, Any], schema: Dict[str, Any], result: ValidationResult) -> None:
+    """
+    Validate schema version compatibility.
+    
+    Args:
+        content: The content.json data
+        schema: The loaded schema
+        result: ValidationResult to add warnings/errors
+    """
+    content_version = content.get("schema_version", "1.0.0")
+    schema_version = schema.get("version", "1.0.0")
+    
+    check_schema_version_compatibility(content_version, schema_version, result)
+
+
 def validate_schema(content: Dict[str, Any], result: ValidationResult) -> None:
-    """Validate against JSON Schema."""
+    """Validate against JSON Schema including version compatibility check."""
     if not JSONSCHEMA_AVAILABLE:
         result.add_warning("schema", "global", "jsonschema not installed, skipping schema validation")
         return
     
     try:
         schema = load_schema()
+        
+        # E2 fix: Check schema version compatibility first
+        validate_schema_version(content, schema, result)
+        
         validator = Draft7Validator(schema)
         
         for error in validator.iter_errors(content):
@@ -400,6 +485,31 @@ def validate_structure(content: Dict[str, Any], result: ValidationResult) -> Non
                 "No summary or closing slide found",
                 "Consider adding a summary or closing slide at the end"
             )
+    
+    # Check for excessive photo type usage (potential layout issues)
+    photo_count = types.count("photo")
+    photo_ratio = photo_count / len(slides) if slides else 0
+    if photo_count >= 5 and photo_ratio > 0.2:
+        result.add_warning(
+            "structure",
+            "slides",
+            f"Many photo slides detected ({photo_count}/{len(slides)} = {photo_ratio:.0%})",
+            "Consider converting some to 'type: content' with image field to add explanatory items"
+        )
+    
+    # Check for photo slides with center position and high width_percent
+    for i, slide in enumerate(slides):
+        if slide.get("type") == "photo":
+            image = slide.get("image", {})
+            position = image.get("position", "")
+            width_pct = image.get("width_percent", 45)
+            if position == "center" and width_pct > 60:
+                result.add_warning(
+                    "layout",
+                    f"slides[{i}]",
+                    f"Photo slide with center position and high width_percent ({width_pct}%) may overflow",
+                    "Consider reducing width_percent to 50-60% or using position: right"
+                )
 
 
 def validate_content(content_path: str, images_dir: str = None) -> ValidationResult:

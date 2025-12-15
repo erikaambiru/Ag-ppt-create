@@ -26,7 +26,7 @@ slide_width = prs.slide_width.inches  # 任意のテンプレートに対応
 
 - 画像配置計算（`add_image_to_slide()`）
 - コードブロック配置（`add_slide_from_layout()`）
-- オーバーフロー検証（`check_overflow.py`）
+- オーバーフロー検証（`validate_pptx.py`）
 
 ### Complete Extraction（完全抽出）
 

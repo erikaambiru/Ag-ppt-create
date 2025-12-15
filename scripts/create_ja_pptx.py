@@ -108,6 +108,48 @@ LIGHT_GRAY = RGBColor(0xF5, 0xF5, 0xF5)
 BASE_DIR = Path(input_json).parent.parent  # Assume content.json is in output_manifest/
 
 
+def get_image_size(image_path: str) -> tuple:
+    """
+    Get image dimensions using PIL.
+    Returns (width, height) in pixels, or (None, None) if failed.
+    """
+    try:
+        from PIL import Image as PILImage
+        with PILImage.open(image_path) as img:
+            return img.size
+    except Exception:
+        return None, None
+
+
+def is_icon_or_logo(image_path: str, min_content_size: int = 400) -> tuple:
+    """
+    Detect if image is likely an icon/logo.
+    
+    Criteria:
+    - Very small size (< min_content_size on any dimension)
+    - Square aspect ratio (0.9-1.1) AND small size (<= 800px)
+    
+    Returns:
+        Tuple of (is_icon_logo: bool, suggested_width_percent: int)
+    """
+    img_width, img_height = get_image_size(image_path)
+    if img_width is None or img_height is None:
+        return False, 45
+    
+    # Very small images (< 400px) are likely icons - use small size
+    if img_width < min_content_size or img_height < min_content_size:
+        suggested = min(20, max(10, int(img_width / 13.333 / 96 * 100 * 1.2)))
+        return True, suggested
+    
+    # Square images under 800px are likely logos - use small size
+    aspect_ratio = img_width / img_height if img_height > 0 else 1
+    if 0.9 <= aspect_ratio <= 1.1 and max(img_width, img_height) <= 800:
+        suggested = min(25, max(15, int(img_width / 13.333 / 96 * 100 * 1.2)))
+        return True, suggested
+    
+    return False, 45
+
+
 def resolve_image_path(image_config: dict) -> str:
     """
     Resolve image path from config. Supports local path or URL.
@@ -162,6 +204,13 @@ def add_image_to_slide(slide, image_config: dict, content_area: dict):
     width_pct = image_config.get('width_percent', 45)
     height_pct = image_config.get('height_percent', 50)
     
+    # Detect icons/logos and limit their size
+    is_icon, suggested_pct = is_icon_or_logo(image_path)
+    if is_icon:
+        img_w, img_h = get_image_size(image_path)
+        print(f"    [i] Icon/logo detected ({img_w}x{img_h}px) - using size: {suggested_pct}%")
+        width_pct = min(width_pct, suggested_pct)
+    
     slide_width = float(prs.slide_width)
     slide_height = float(prs.slide_height)
     
@@ -203,6 +252,38 @@ def add_image_to_slide(slide, image_config: dict, content_area: dict):
                 'width': content_area['width'],
                 'height': text_height
             }
+            
+        elif position == 'center':
+            # Image centered (for photo slides)
+            # Get slide dimensions
+            slide_width_inches = prs.slide_width.inches
+            slide_height_inches = prs.slide_height.inches
+            title_height = 1.5  # Reserved for title
+            available_height = slide_height_inches - title_height - 0.3
+            
+            img_width_inches = slide_width_inches * width_pct / 100
+            
+            # Check if height will exceed available space
+            try:
+                from PIL import Image as PILImage
+                with PILImage.open(image_path) as img:
+                    img_w, img_h = img.size
+                    aspect_ratio = img_w / img_h
+                    calculated_height = img_width_inches / aspect_ratio
+                    
+                    max_height = available_height * 0.95
+                    if calculated_height > max_height:
+                        print(f"    [i] Image height limited: {calculated_height:.1f}\" → {max_height:.1f}\" (fits slide)")
+                        img_width_inches = max_height * aspect_ratio
+            except Exception:
+                pass  # If PIL fails, use width as-is
+            
+            img_width = Inches(img_width_inches)
+            img_left = (Inches(slide_width_inches) - img_width) / 2
+            img_top = content_area['top']
+            slide.shapes.add_picture(image_path, img_left, img_top, width=img_width)
+            # No text area when center image
+            return None
             
     except Exception as e:
         print(f"  ⚠️  Failed to add image: {e}")
@@ -435,7 +516,15 @@ for slide_data in data['slides']:
     notes = slide_data.get('notes', '')  # Speaker notes
     
     if slide_type in ['title', 'closing']:
-        slide = add_title_slide(prs, title, subtitle)
+        # If title/closing has image, use content slide with SMALL image
+        if image_config:
+            # Limit image size for title slides (e.g., presenter photos)
+            small_image_config = image_config.copy()
+            small_image_config['width_percent'] = min(image_config.get('width_percent', 25), 25)
+            small_image_config['position'] = image_config.get('position', 'right')
+            slide = add_content_slide(prs, title, content, slide_type, small_image_config)
+        else:
+            slide = add_title_slide(prs, title, subtitle)
     elif slide_type in ['section', 'section_title']:
         slide = add_section_slide(prs, title, subtitle)
     elif slide_type == 'two_column':
