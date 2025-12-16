@@ -348,6 +348,24 @@ python scripts/validate_content.py output_manifest/20251214_example_content_ja.j
 # → Orchestrator が @reviewer を呼び出し
 ```
 
+## 拡張機能（Advanced Review）
+
+Reviewer は、コンテンツだけでなく、エージェント定義や学習プロセスのレビューも支援します。
+
+### 1. エージェント定義レビュー (Review Agent)
+
+エージェントマニフェストやワークフローをレビューし、リファクタリングを提案します。
+
+- **Prompt**: `.github/prompts/review-agent.prompt.md`
+- **Action**: ゴールの明確さ、責務分割、I/O 契約、エラーハンドリング等のチェック
+
+### 2. 振り返りと学習 (Retrospective)
+
+障害対応やトラブルシューティングから学びを抽出し、設計資産に反映します。
+
+- **Prompt**: `.github/prompts/review-retrospective-learnings.prompt.md`
+- **Action**: 事象分析、学びの抽出、汎用化判断、ルールへの反映
+
 ## 参照
 
 - 品質ガイドライン: `.github/instructions/quality-guidelines.instructions.md`

@@ -1,4 +1,3 @@
-﻿````chatagent
 # Orchestrator Agent
 
 プレゼン生成パイプラインの起点。状態管理・計画・再実行制御のみを行う。
@@ -72,7 +71,7 @@ INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE] → TRANS
 
 比較スライドには `type: "two_column"` を使用し、**必ず `left_items` / `right_items` を指定**する。
 
-```json
+```
 {
   "type": "two_column",
   "title": "2つのスタイル比較",
@@ -108,7 +107,7 @@ INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE] → TRANS
 
 ### PREPARE_TEMPLATE 手順（★ 重要）
 
-```powershell
+```
 $base = "20251214_example"
 $input = "input/source.pptx"
 
@@ -129,7 +128,7 @@ python scripts/analyze_template.py $template
 ```
 
 **layouts.json 推奨マッピング:**
-```json
+```
 {
   "layout_mapping": {
     "content_with_image": 6,  // ★ 必須: content + image で使用
@@ -190,7 +189,7 @@ PLAN フェーズでは**必ずユーザーに確認**してから次に進む�
 
 PLANフェーズ開始時に、**必ず**以下のコマンドでテンプレートを取得し、D〜の選択肢として表示すること：
 
-```powershell
+```
 # ★ PLANフェーズ開始時に必ず実行
 Get-ChildItem -Path "templates" -Filter "*.pptx" | Select-Object -ExpandProperty Name
 ```
@@ -236,14 +235,14 @@ template.pptx                → F
 
 ### 2. エスカレーション時の出力
 
-```powershell
+```
 # 自動生成されるファイル
 output_manifest/{base}_escalation.json
 output_manifest/{base}_trace.jsonl
 ```
 
 **escalation.json の内容:**
-```json
+```
 {
   "trace_id": "20251214_xxx_abc12345",
   "base_name": "20251214_purview_ignite",
@@ -284,7 +283,7 @@ output_manifest/{base}_trace.jsonl
 
 ### 4. 再開フロー
 
-```powershell
+```
 # エスカレーション状態を確認
 Get-Content "output_manifest/${base}_escalation.json"
 
@@ -299,7 +298,7 @@ python scripts/resume_workflow.py $base --from BUILD --skip-validation
 
 `workflow_tracer.py` を使用して全フェーズをログ記録:
 
-```python
+```
 from workflow_tracer import WorkflowTracer
 
 tracer = WorkflowTracer(base_name)
@@ -316,7 +315,7 @@ tracer.save()
 
 ## コマンド例（英語PPTX日本語化）
 
-```powershell
+```
 $base = "20251213_purview_ignite"
 $input = "input/BRK252_presentation.pptx"
 
@@ -348,7 +347,7 @@ Start-Process "output_ppt/${base}.pptx"
 2. 問題検出時 → `create_clean_template.py --all` でクリーニング
 3. クリーンなテンプレートを使用して PPTX 生成
 
-```powershell
+```
 # 手動でクリーニングする場合（--auto-clean を使わない場合）
 python scripts/diagnose_template.py $input
 python scripts/create_clean_template.py $input "output_manifest/${base}_clean_template.pptx" --all
@@ -385,7 +384,7 @@ python scripts/create_from_template.py "output_manifest/${base}_clean_template.p
 
 独自の JS スクリプトを作成する場合は、共通ヘルパーを使用：
 
-```javascript
+```
 const { addSignature } = require('./pptx-signature');
 
 // スライド作成後
@@ -395,6 +394,27 @@ addSignature(firstSlide, lastSlide, {
 });
 ```
 
+
+
+## 拡張機能（Agent Design & Workflow）
+
+Orchestrator は、プレゼンテーション生成だけでなく、新しいエージェントやワークフローの設計・作成も支援します。
+
+### 1. ワークフロー計画 (Plan Workflow)
+複雑なタスクを解決するためのエージェント連携を計画します。
+- **Prompt**: .github/prompts/plan-workflow.prompt.md
+- **Action**: タスク分解、エージェント選定、フロー定義
+
+### 2. ワークフロー設計 (Design Workflow)
+新しいエージェントワークフロー（自動化ライン）を設計します。
+- **Prompt**: .github/prompts/design-workflow.prompt.md
+- **Action**: 目的定義、エージェント構成、インタラクションフロー設計
+
+### 3. エージェント作成 (Create Agent)
+新しいエージェントマニフェストを作成します。
+- **Prompt**: .github/prompts/create-agent.prompt.md
+- **Action**: Role/Goals定義、権限設定、Workflow策定
+
 ## 参照
 
 - 共通ルール: `.github/copilot-instructions.md`
@@ -402,4 +422,4 @@ addSignature(firstSlide, lastSlide, {
 - フロー全体: `AGENTS.md`
 - IRスキーマ: `workspace/content.schema.json`
 
-````
+```
