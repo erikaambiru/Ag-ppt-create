@@ -1,0 +1,183 @@
+{
+  "metadata": {
+    "title": "Azure 運用担当者・SIer 様へ：GitHub Copilot がもたらす運用業務の変革と活用メリット",
+    "presenter": "やまぱん",
+    "date": "2025-12-16",
+    "duration_minutes": 15,
+    "audience": {
+      "role": "Azure運用担当者・SIer",
+      "tech_level": "中級",
+      "size": "30-50名"
+    },
+    "goal": "Copilot は開発者だけのものではないと理解してもらい、導入検討を促す",
+    "cta": "VS Code + GitHub Copilot を試してもらう",
+    "tone": "カジュアル",
+    "source_file": "input/20251215_copilot_sier_proposal.md"
+  },
+  "outline": [
+    {
+      "section": 1,
+      "title": "GitHub Copilot がもたらす運用業務の変革",
+      "type": "title",
+      "key_message": "コードを書かない人こそ、Copilot の恩恵がある",
+      "notes": "キャッチーに。「自分には関係ない」と思っている人の先入観を覆す"
+    },
+    {
+      "section": 2,
+      "title": "アジェンダ",
+      "type": "agenda",
+      "items": [
+        "背景：なぜ運用者こそ活用すべきか",
+        "Copilot とは？ 〜補完からエージェントへ〜",
+        "活用メリット① IaC 作成の効率化",
+        "活用メリット② スクリプト作成の負荷軽減",
+        "活用メリット③ ドキュメント・調査の時短",
+        "まとめ：今日から始める 3 ステップ"
+      ]
+    },
+    {
+      "section": 3,
+      "title": "背景：運用者こそ活用すべき理由",
+      "type": "section",
+      "key_message": "私たちの業務はすべて「テキスト」を扱う作業",
+      "estimated_slides": 2
+    },
+    {
+      "section": 4,
+      "title": "運用者の日常業務",
+      "type": "content",
+      "talking_points": [
+        "設計書・パラメータシート（Excel / Markdown）",
+        "構成図・フロー図（PowerPoint / Draw.io）",
+        "構築・運用スクリプト（PowerShell / Bash）",
+        "IaC テンプレート（Bicep / Terraform）",
+        "ログ解析・エラー調査"
+      ],
+      "key_message": "これらすべて「言語」を扱う作業 = AI が支援できる",
+      "notes": "聴衆に「確かに自分もこれやってる」と共感してもらう"
+    },
+    {
+      "section": 5,
+      "title": "GitHub Copilot とは？",
+      "type": "section",
+      "key_message": "「補完ツール」から「AI エージェント」へ進化",
+      "estimated_slides": 3
+    },
+    {
+      "section": 6,
+      "title": "Copilot の 3 つの顔",
+      "type": "content",
+      "talking_points": [
+        "① Ghost Text: コード補完（従来のイメージ）",
+        "② Copilot Chat: 対話型 AI（質問→回答）",
+        "③ Agent Mode: 自律的に作業を進める（最新）"
+      ],
+      "materials_needed": ["VS Code のスクリーンショット"]
+    },
+    {
+      "section": 7,
+      "title": "Agent Mode の衝撃",
+      "type": "content",
+      "talking_points": [
+        "@workspace: ワークスペース全体を理解",
+        "ターミナル連携: エラーログを読んで修正提案",
+        "Copilot Edits: 複数ファイルを横断編集"
+      ],
+      "key_message": "「指示待ちの辞書」から「共に作業する同僚」へ"
+    },
+    {
+      "section": 8,
+      "title": "活用メリット① IaC 作成の効率化",
+      "type": "section",
+      "key_message": "ドキュメント検索時間を大幅削減",
+      "estimated_slides": 2
+    },
+    {
+      "section": 9,
+      "title": "Bicep の例",
+      "type": "content",
+      "talking_points": [
+        "コメントで指示 → 雛形を自動生成",
+        "必須プロパティの漏れを防止",
+        "パラメータシートから直接生成も可能"
+      ],
+      "materials_needed": ["Bicep コードサンプル"]
+    },
+    {
+      "section": 10,
+      "title": "活用メリット② スクリプト作成の負荷軽減",
+      "type": "section",
+      "key_message": "構文を暗記していなくても書ける",
+      "estimated_slides": 2
+    },
+    {
+      "section": 11,
+      "title": "PowerShell の例",
+      "type": "content",
+      "talking_points": [
+        "自然言語でやりたいことを記述",
+        "Copilot が適切なコマンドレットを提案",
+        "エラー時は /fix で修正案"
+      ],
+      "materials_needed": ["PowerShell コードサンプル"]
+    },
+    {
+      "section": 12,
+      "title": "活用メリット③ ドキュメント・調査の時短",
+      "type": "section",
+      "key_message": "検索→理解→適用のサイクルを高速化",
+      "estimated_slides": 2
+    },
+    {
+      "section": 13,
+      "title": "調査時間の削減",
+      "type": "content",
+      "talking_points": [
+        "新技術のキャッチアップが効率化",
+        "エラーメッセージの解読",
+        "ドキュメント作成（Markdown、設計書）"
+      ],
+      "notes": "デモがあると効果的"
+    },
+    {
+      "section": 14,
+      "title": "まとめ：今日から始める 3 ステップ",
+      "type": "summary",
+      "talking_points": [
+        "1. VS Code をインストール",
+        "2. GitHub Copilot 拡張機能を追加",
+        "3. 普段の業務で試してみる"
+      ],
+      "key_message": "まずは使ってみることが大事"
+    },
+    {
+      "section": 15,
+      "title": "ありがとうございました",
+      "type": "closing",
+      "notes": "質問受付、連絡先表示"
+    }
+  ],
+  "materials": {
+    "images": [
+      "VS Code + Copilot のスクリーンショット",
+      "Ghost Text の例",
+      "Copilot Chat の例",
+      "Agent Mode (@workspace) の例"
+    ],
+    "code_samples": [
+      "Bicep: ストレージアカウント作成",
+      "PowerShell: Blob 削除スクリプト",
+      "Azure CLI の例"
+    ],
+    "demos": ["VS Code でのライブコーディング（オプション）"]
+  },
+  "constraints": {
+    "avoid_topics": [],
+    "required_branding": "GitHub / Microsoft ロゴ使用ガイドライン遵守"
+  },
+  "next_steps": [
+    "画像素材の準備（VS Code スクリーンショット）",
+    "コードサンプルの整備",
+    "テンプレート選択 → Orchestrator へ引継ぎ"
+  ]
+}

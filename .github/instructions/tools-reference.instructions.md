@@ -2,12 +2,13 @@
 
 ## 方式選定
 
-| 用途              | 推奨方式                                              | 推奨度     | 備考                 |
-| ----------------- | ----------------------------------------------------- | ---------- | -------------------- |
-| 英語 PPTX→ 日本語 | `reconstruct_analyzer.py` + `create_from_template.py` | ⭐⭐⭐⭐⭐ | 最推奨、マスター継承 |
-| テンプレート利用  | `analyze_template.py` + `create_from_template.py`     | ⭐⭐⭐⭐⭐ | 最推奨、デザイン継承 |
-| 白紙から新規作成  | `create_ja_pptx.py`                                   | ⭐⭐⭐⭐   | シンプルできれい     |
-| コード/技術内容多 | カスタム JS (pptxgenjs)                               | ⭐⭐⭐⭐   | コードブロック向け   |
+| 用途              | 推奨方式                                              | 推奨度     | 備考                           |
+| ----------------- | ----------------------------------------------------- | ---------- | ------------------------------ |
+| 英語 PPTX→ 日本語 | `reconstruct_analyzer.py` + `create_from_template.py` | ⭐⭐⭐⭐⭐ | 最推奨、マスター継承           |
+| テンプレート利用  | `analyze_template.py` + `create_from_template.py`     | ⭐⭐⭐⭐⭐ | 最推奨、デザイン継承           |
+| 白紙から新規作成  | `create_ja_pptx.py`                                   | ⭐⭐⭐⭐   | シンプルできれい               |
+| コード/技術内容多 | カスタム JS (pptxgenjs)                               | ⭐⭐⭐⭐   | コードブロック向け             |
+| 構成図/ポンチ絵   | カスタム JS (pptxgenjs)                               | ⭐⭐⭐⭐⭐ | 図形・矢印・色分けが必要な場合 |
 
 ### 実験的・非推奨方式
 
@@ -137,6 +138,35 @@ python scripts/analyze_template.py $template
   - **空プレースホルダー削除**: 画像追加後に空の Picture Placeholder を自動削除
   - `--force` で警告付き強制生成可
 - `create_ja_pptx.py`: JSON→ 新規 PPTX（python-pptx）
+- `merge_slides.py`: pptxgenjs で生成した構成図をテンプレートにマージ ★ NEW
+
+### 構成図 + テンプレートのワークフロー（★ 推奨）
+
+**テンプレートのデザイン（色・フォント）を使いつつ、図形で構成図を作りたい場合:**
+
+```powershell
+$base = "20251216_azure_diagram"
+$template = "templates/Mytemplate_MS.pptx"
+
+# 1. pptxgenjs で構成図を生成（図形・矢印）
+node scripts/create_azure_diagram.js
+# → output_ppt/${base}_diagram.pptx
+
+# 2. テンプレートにマージ（マスター継承）
+python scripts/merge_slides.py $template "output_ppt/${base}_diagram.pptx" "output_ppt/${base}.pptx" --clear-template
+
+# 3. PowerPoint で確認
+Start-Process "output_ppt/${base}.pptx"
+```
+
+**merge_slides.py のオプション:**
+
+| オプション             | 効果                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `--clear-template`     | テンプレートの既存スライドを削除（マスターのみ継承）★ 推奨 |
+| `--position 0`         | 先頭に挿入                                                 |
+| `--position -1`        | 末尾に追加（デフォルト）                                   |
+| `--keep-source-master` | ソースの色を維持                                           |
 
 ## preserve 方式専用ツール（⚠️ experimental）
 

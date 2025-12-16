@@ -33,12 +33,13 @@ PPTX 自動生成エージェント定義。
 
 ## エージェント一覧
 
-| エージェント | マニフェスト                           | 役割                              |
-| ------------ | -------------------------------------- | --------------------------------- |
-| Orchestrator | `.github/agents/orchestrator.agent.md` | 状態管理・計画・リトライ制御      |
-| Localizer    | `.github/agents/localizer.agent.md`    | 翻訳のみ（AI 判断）               |
-| Summarizer   | `.github/agents/summarizer.agent.md`   | 要約・再構成（AI 判断）           |
-| Reviewer     | `.github/agents/reviewer.agent.md`     | 品質レビュー（JSON・PPTX 両対応） |
+| エージェント     | マニフェスト                           | 役割                                       |
+| ---------------- | -------------------------------------- | ------------------------------------------ |
+| **Brainstormer** | `.github/agents/brainstormer.agent.md` | 壁打ち対話でインプット収集 → proposal.json |
+| Orchestrator     | `.github/agents/orchestrator.agent.md` | 状態管理・計画・リトライ制御               |
+| Localizer        | `.github/agents/localizer.agent.md`    | 翻訳のみ（AI 判断）                        |
+| Summarizer       | `.github/agents/summarizer.agent.md`   | 要約・再構成（AI 判断）                    |
+| Reviewer         | `.github/agents/reviewer.agent.md`     | 品質レビュー（JSON・PPTX 両対応）          |
 
 ## スクリプト一覧
 
@@ -52,6 +53,7 @@ PPTX 自動生成エージェント定義。
 | `diagnose_template.py`     | テンプレート品質診断                 | -                        |
 | `clean_template.py`        | テンプレートクリーニング             | 背景削除、参照修復       |
 | `analyze_template.py`      | レイアウト分析 → layouts.json        | -                        |
+| `merge_slides.py`          | 構成図スライドをテンプレートにマージ | -                        |
 | `workflow_tracer.py`       | トレースログ出力                     | -                        |
 
 > 📖 スクリプト依存関係は [script-dependencies.instructions.md](.github/instructions/script-dependencies.instructions.md) を参照。
@@ -60,29 +62,54 @@ PPTX 自動生成エージェント定義。
 
 ## 標準フロー
 
+### メインフロー（★ 必ず Orchestrator から開始）
+
 ```
-INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE] → TRANSLATE → REVIEW(JSON) → BUILD → REVIEW(PPTX) → DONE
-          ↑                                                                    │                      │
-          │                              └─────────(FAIL→修正 最大3回)─────────┴──────────────────────┘
-          │                                                                    ↓
-     ユーザー承認必須                                                     ESCALATE(3回超)
+                                    ┌─────────────────────────────────────────┐
+                                    │     TRIAGE（Orchestrator が判断）        │
+                                    └──────────────┬──────────────────────────┘
+                                                   │
+                    ┌──────────────────────────────┼──────────────────────────────┐
+                    │                              │                              │
+                    ▼                              ▼                              ▼
+          ┌─────────────────┐           ┌─────────────────┐           ┌─────────────────┐
+          │ A: 壁打ち必要    │           │ B: 入力あり     │           │ C: 途中再開     │
+          │ → BRAINSTORM    │           │ → INIT          │           │ → 該当フェーズ  │
+          └────────┬────────┘           └────────┬────────┘           └────────┬────────┘
+                   │                              │                              │
+                   ▼                              │                              │
+          proposal.json                           │                              │
+                   │                              │                              │
+                   └──────────────────────────────┴──────────────────────────────┘
+                                                  │
+                                                  ▼
+          ┌───────────────────────────────────────────────────────────────────────┐
+          │ INIT → PLAN(確認) → PREPARE_TEMPLATE → EXTRACT → [SUMMARIZE]          │
+          │      → TRANSLATE → REVIEW(JSON) → BUILD → REVIEW(PPTX) → DONE         │
+          │                                     │                    │            │
+          │                    └────(FAIL→修正 最大3回)──────────────┘            │
+          │                                     ↓                                 │
+          │                                ESCALATE(3回超)                        │
+          └───────────────────────────────────────────────────────────────────────┘
 ```
 
 ### フェーズ詳細
 
-| フェーズ         | 担当                    | 処理内容                                   |
-| ---------------- | ----------------------- | ------------------------------------------ |
-| INIT             | classify_input.py       | 入力検出、base 生成 → classification.json  |
-| PLAN             | Orchestrator            | ユーザーに方式・枚数を提示し承認（★ 必須） |
-| PREPARE_TEMPLATE | create_clean_template   | テンプレート診断・クリーニング・位置修正   |
-| EXTRACT          | スクリプト群            | 画像抽出 + content.json 生成（並列可）     |
-| SUMMARIZE        | Summarizer              | 枚数削減時のみ：要約・再構成               |
-| TRANSLATE        | Localizer               | content.json → content_ja.json             |
-| REVIEW(JSON)     | Reviewer                | 品質チェック → 合否判定                    |
-| BUILD            | create_from_template.py | PPTX 生成（自動位置調整・AutoFit 制御）    |
-| REVIEW(PPTX)     | Reviewer                | 最終確認 → 合否判定                        |
-| DONE             | Orchestrator            | PowerPoint 起動（オプション）              |
-| ESCALATE         | workflow_tracer.py      | 3 回失敗時の人間エスカレーション           |
+| フェーズ         | 担当                    | 処理内容                                      |
+| ---------------- | ----------------------- | --------------------------------------------- |
+| **TRIAGE**       | **Orchestrator**        | 入力判断・フロー分岐（★ 最初に実行）          |
+| **BRAINSTORM**   | Brainstormer            | 壁打ち対話 → proposal.json 生成（オプション） |
+| INIT             | classify_input.py       | 入力検出、base 生成 → classification.json     |
+| PLAN             | Orchestrator            | ユーザーに方式・枚数を提示し承認（★ 必須）    |
+| PREPARE_TEMPLATE | create_clean_template   | テンプレート診断・クリーニング・位置修正      |
+| EXTRACT          | スクリプト群            | 画像抽出 + content.json 生成（並列可）        |
+| SUMMARIZE        | Summarizer              | 枚数削減時のみ：要約・再構成                  |
+| TRANSLATE        | Localizer               | content.json → content_ja.json                |
+| REVIEW(JSON)     | Reviewer                | 品質チェック → 合否判定                       |
+| BUILD            | create_from_template.py | PPTX 生成（自動位置調整・AutoFit 制御）       |
+| REVIEW(PPTX)     | Reviewer                | 最終確認 → 合否判定                           |
+| DONE             | Orchestrator            | PowerPoint 起動（オプション）                 |
+| ESCALATE         | workflow_tracer.py      | 3 回失敗時の人間エスカレーション              |
 
 ### PREPARE_TEMPLATE で自動修正される問題
 

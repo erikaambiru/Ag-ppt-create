@@ -4,14 +4,15 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 
 ## 参照ドキュメント
 
-| ドキュメント                                                                                       | 説明                                |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| [AGENTS.md](../AGENTS.md)                                                                          | エージェント一覧とワークフロー      |
-| [instructions/plan-phase.instructions.md](instructions/plan-phase.instructions.md)                 | PLAN フェーズ確認プロセス（★ 必須） |
-| [instructions/quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) | 品質ガイドライン                    |
-| [instructions/tools-reference.instructions.md](instructions/tools-reference.instructions.md)       | ツール使用ルール・フロー            |
-| [instructions/common.instructions.md](instructions/common.instructions.md)                         | 命名規則・箇条書きルール            |
-| [agents/\*.agent.md](agents/)                                                                      | 各エージェント定義                  |
+| ドキュメント                                                                                       | 説明                                      |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| [AGENTS.md](../AGENTS.md)                                                                          | エージェント一覧とワークフロー            |
+| [agents/brainstormer.agent.md](agents/brainstormer.agent.md)                                       | 壁打ちエージェント（インプット収集）★ NEW |
+| [instructions/plan-phase.instructions.md](instructions/plan-phase.instructions.md)                 | PLAN フェーズ確認プロセス（★ 必須）       |
+| [instructions/quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) | 品質ガイドライン                          |
+| [instructions/tools-reference.instructions.md](instructions/tools-reference.instructions.md)       | ツール使用ルール・フロー                  |
+| [instructions/common.instructions.md](instructions/common.instructions.md)                         | 命名規則・箇条書きルール                  |
+| [agents/\*.agent.md](agents/)                                                                      | 各エージェント定義                        |
 
 > 📖 **設計原則（SSOT, Agent vs Script, IR, Fail Fast, Human in the Loop）** は [AGENTS.md](../AGENTS.md) を参照。
 
@@ -100,6 +101,7 @@ python -c "from pptx import Presentation; p=Presentation('templates/xxx.pptx'); 
 | テンプレートがない | create_clean_template + 上記            | ⭐⭐⭐⭐⭐ |
 | 白紙から新規作成   | create_ja_pptx.py                       | ⭐⭐⭐⭐   |
 | コード多め         | pptxgenjs                               | ⭐⭐⭐⭐   |
+| 構成図/ポンチ絵    | pptxgenjs（図形描画）                   | ⭐⭐⭐⭐⭐ |
 | preserve           | experimental（今後改善予定）            | ⭐⭐       |
 
 詳細は [tools-reference.instructions.md](instructions/tools-reference.instructions.md) を参照。
