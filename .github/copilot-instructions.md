@@ -49,6 +49,15 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 - **git コマンドは必ずリポジトリルートで実行**: `cd` が省略されると親ディレクトリの `.git` を参照する可能性あり
 - **複合コマンドでは `Set-Location` を最初に**: `Set-Location "D:\03_github\Ag-ppt-create"; git status` のように明示的に移動
 
+### リポジトリ構成
+
+| リポジトリ  | 用途               | URL                                              |
+| ----------- | ------------------ | ------------------------------------------------ |
+| **Public**  | 公開版（安定版）   | https://github.com/aktsmm/Ag-ppt-create          |
+| **Private** | 開発版（実験的）   | https://github.com/aktsmm/Ag-ppt-create-private  |
+
+> 💡 開発は Private → 安定したら Public にマージ
+
 ### 推奨パターン
 
 ```powershell

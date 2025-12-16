@@ -21,7 +21,18 @@
 
 ---
 
-## 🚀 クイックスタート
+## � リポジトリ
+
+| リポジトリ | 用途 | URL |
+|-----------|------|-----|
+| **Public** | 公開版（安定版） | https://github.com/aktsmm/Ag-ppt-create |
+| **Private** | 開発版（実験的機能） | https://github.com/aktsmm/Ag-ppt-create-private |
+
+> 💡 **開発の流れ**: Private で開発・テスト → 安定したら Public にマージ
+
+---
+
+## �🚀 クイックスタート
 
 ### 1. セットアップ（初回のみ）
 
@@ -90,17 +101,17 @@ Orchestrator が方式・枚数を提案し、**あなたの承認後**に生成
 
 ### エージェント構成
 
-| エージェント       | 役割                                       | 種別   |
-| ------------------ | ------------------------------------------ | ------ |
-| **Orchestrator**   | 状態管理・計画・ヒアリング・リトライ制御   | Agent  |
-| **Brainstormer**   | 壁打ち対話でインプット収集                 | Agent  |
-| **Localizer**      | 翻訳のみ（AI 判断必須）                    | Agent  |
-| **Summarizer**     | 要約・再構成（AI 判断必須）                | Agent  |
-| **JSON Reviewer**  | content.json 品質レビュー（翻訳・構造）    | Agent  |
-| **PPTX Reviewer**  | PPTX 品質レビュー（視覚・ノート・CTA）     | Agent  |
-| Classifier         | 入力分類・方式判定                         | Script |
-| Validator          | IR スキーマ検証・空コンテンツ検出          | Script |
-| Builder            | PPTX 生成（決定論的処理）                  | Script |
+| エージェント      | 役割                                     | 種別   |
+| ----------------- | ---------------------------------------- | ------ |
+| **Orchestrator**  | 状態管理・計画・ヒアリング・リトライ制御 | Agent  |
+| **Brainstormer**  | 壁打ち対話でインプット収集               | Agent  |
+| **Localizer**     | 翻訳のみ（AI 判断必須）                  | Agent  |
+| **Summarizer**    | 要約・再構成（AI 判断必須）              | Agent  |
+| **JSON Reviewer** | content.json 品質レビュー（翻訳・構造）  | Agent  |
+| **PPTX Reviewer** | PPTX 品質レビュー（視覚・ノート・CTA）   | Agent  |
+| Classifier        | 入力分類・方式判定                       | Script |
+| Validator         | IR スキーマ検証・空コンテンツ検出        | Script |
+| Builder           | PPTX 生成（決定論的処理）                | Script |
 
 ### ワークフロー図
 
