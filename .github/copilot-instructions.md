@@ -51,10 +51,10 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 
 ### リポジトリ構成
 
-| リポジトリ  | 用途               | URL                                              |
-| ----------- | ------------------ | ------------------------------------------------ |
-| **Public**  | 公開版（安定版）   | https://github.com/aktsmm/Ag-ppt-create          |
-| **Private** | 開発版（実験的）   | https://github.com/aktsmm/Ag-ppt-create-private  |
+| リポジトリ  | 用途             | URL                                             |
+| ----------- | ---------------- | ----------------------------------------------- |
+| **Public**  | 公開版（安定版） | https://github.com/aktsmm/Ag-ppt-create         |
+| **Private** | 開発版（実験的） | https://github.com/aktsmm/Ag-ppt-create-private |
 
 > 💡 開発は Private → 安定したら Public にマージ
 

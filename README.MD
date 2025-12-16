@@ -23,9 +23,9 @@
 
 ## � リポジトリ
 
-| リポジトリ | 用途 | URL |
-|-----------|------|-----|
-| **Public** | 公開版（安定版） | https://github.com/aktsmm/Ag-ppt-create |
+| リポジトリ  | 用途                 | URL                                             |
+| ----------- | -------------------- | ----------------------------------------------- |
+| **Public**  | 公開版（安定版）     | https://github.com/aktsmm/Ag-ppt-create         |
 | **Private** | 開発版（実験的機能） | https://github.com/aktsmm/Ag-ppt-create-private |
 
 > 💡 **開発の流れ**: Private で開発・テスト → 安定したら Public にマージ
