@@ -27,6 +27,31 @@ slide_width = prs.slide_width.inches  # 任意のテンプレートに対応
 - 画像配置計算（`add_image_to_slide()`）
 - コードブロック配置（`add_slide_from_layout()`）
 - オーバーフロー検証（`validate_pptx.py`）
+- pptxgenjs での図形生成（下記参照）
+
+### pptxgenjs のスライドサイズ（★ 重要）
+
+**重要**: pptxgenjs の `LAYOUT_16x9` は **10" × 5.625"** であり、PowerPoint 標準ワイドスクリーン（13.33" × 7.5"）とは異なる。
+
+```javascript
+// ❌ NG: 13.33インチ幅を想定したハードコード
+const x = 12.0; // 10インチスライドではみ出す
+
+// ✅ OK: defineLayout でテンプレートサイズに合わせる
+pptx.defineLayout({ name: "TEMPLATE", width: 13.33, height: 7.5 });
+pptx.layout = "TEMPLATE";
+const SLIDE_WIDTH = 13.33; // 変数で管理
+```
+
+**サイズ確認方法**:
+
+```javascript
+console.log(
+  `Actual size: ${pptx.presLayout.width}" x ${pptx.presLayout.height}"`
+);
+```
+
+> 📖 詳細なワークフローは [tools-reference.instructions.md](tools-reference.instructions.md) を参照。
 
 ### Complete Extraction（完全抽出）
 
@@ -41,6 +66,21 @@ Web ソースからの抽出時、以下の全要素を明示的にリストア�
 | メタデータ     | `<meta>` tags           | `metadata.*`                    |
 
 **重要**: `fetch_webpage` は画像 URL を返さない場合があるため、別途 `curl` + 正規表現で抽出すること。
+
+---
+
+## スクリプト配置ルール
+
+| フォルダ        | 用途                               |
+| --------------- | ---------------------------------- |
+| `scripts/`      | 汎用的なパイプラインスクリプト     |
+| `scripts_temp/` | 一時的なプロジェクト固有スクリプト |
+
+**ルール**:
+
+- 汎用スクリプト → `scripts/`
+- 特定プロジェクト用の一時スクリプト → `scripts_temp/`
+- 汎用化したら `scripts/` に移動し、AGENTS.md に追記
 
 ---
 
@@ -61,13 +101,15 @@ Web ソースからの抽出時、以下の全要素を明示的にリストア�
 
 ### ファイル種別と出力先
 
-| ファイル種別    | 出力先             | ファイル名パターン         |
-| --------------- | ------------------ | -------------------------- |
-| **最終 PPTX**   | `output_ppt/`      | `{base}.pptx`              |
-| 作業用 PPTX     | `output_manifest/` | `{base}_working.pptx`      |
-| inventory       | `output_manifest/` | `{base}_inventory.json`    |
-| replacements    | `output_manifest/` | `{base}_replacements.json` |
-| slides フォルダ | `output_manifest/` | `{base}_slides/`           |
+| ファイル種別        | 出力先             | ファイル名パターン          |
+| ------------------- | ------------------ | --------------------------- |
+| **最終 PPTX**       | `output_ppt/`      | `{base}.pptx`               |
+| 作業用 PPTX         | `output_manifest/` | `{base}_working.pptx`       |
+| pptxgenjs 図形 PPTX | `output_manifest/` | `{base}_diagrams.pptx`      |
+| 挿入設定 JSON       | `output_manifest/` | `{base}_insert_config.json` |
+| inventory           | `output_manifest/` | `{base}_inventory.json`     |
+| replacements        | `output_manifest/` | `{base}_replacements.json`  |
+| slides フォルダ     | `output_manifest/` | `{base}_slides/`            |
 
 ※ `{base}` = `{YYYYMMDD}_{keyword}_{purpose}`
 

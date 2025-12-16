@@ -47,7 +47,10 @@ images/*
 !images/.gitkeep
 !images/README.md
 
+# Temporary scripts (project-specific, not for version control)
+scripts_temp/
+!scripts_temp/README.md
+
 # Azure Update workflow (customer-specific)
 .github/instructions/azure-update-workflow.instructions.md
-scripts/reorganize_azure_update.py
 output_manifest/_tmp_*.py

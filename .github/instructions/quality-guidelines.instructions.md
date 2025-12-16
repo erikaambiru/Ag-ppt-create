@@ -117,6 +117,30 @@
 
 > 💡 テンプレートの設計を尊重しつつ、問題がある場合のみ自動調整されます。
 
+## スライドマスター使い分けルール（★ 重要）
+
+**問題**: 全スライドに同じレイアウトを使うと「素人っぽい」印象になる
+
+**ルール**: スライドタイプに応じた適切なレイアウトを選択する
+
+| スライドタイプ | 推奨レイアウト名                         | 説明                   |
+| -------------- | ---------------------------------------- | ---------------------- |
+| `title`        | Title / Title Slide / Title square photo | タイトル専用レイアウト |
+| `section`      | Section Header / Section Divider         | セクション区切り       |
+| `content`      | Title and Content / タイトルとコンテンツ | 標準コンテンツ         |
+| `two_column`   | Two Content / 2 つのコンテンツ           | 比較・対照             |
+| `closing`      | Closing / Thank You / Closing logo slide | エンディング専用       |
+| `agenda`       | Title and Content                        | コンテンツと同じで OK  |
+
+**自動対応**: `create_from_template.py` の `layout_mapping` で設定済みの場合は自動選択される。
+
+**確認方法**:
+
+```powershell
+python scripts/analyze_template.py $template
+# → layouts.json の layout_mapping を確認
+```
+
 ## 🚨 スピーカーノートの充実（★ 自動検出対応）
 
 **問題**: ノートが「出典: 元スライド #XX」だけだと、プレゼンターが何を話すべきか分からない

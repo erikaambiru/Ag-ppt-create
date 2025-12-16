@@ -138,7 +138,8 @@ python scripts/analyze_template.py $template
   - **空プレースホルダー削除**: 画像追加後に空の Picture Placeholder を自動削除
   - `--force` で警告付き強制生成可
 - `create_ja_pptx.py`: JSON→ 新規 PPTX（python-pptx）
-- `merge_slides.py`: pptxgenjs で生成した構成図をテンプレートにマージ ★ NEW
+- `merge_slides.py`: pptxgenjs で生成した構成図をテンプレートにマージ
+- `insert_diagram_slides.py`: 図形スライドを正しい位置・レイアウトで挿入 ★ NEW
 
 ### 構成図 + テンプレートのワークフロー（★ 推奨）
 
@@ -167,6 +168,49 @@ Start-Process "output_ppt/${base}.pptx"
 | `--position 0`         | 先頭に挿入                                                 |
 | `--position -1`        | 末尾に追加（デフォルト）                                   |
 | `--keep-source-master` | ソースの色を維持                                           |
+
+### ⚠️ pptxgenjs サイズの注意点（★ 重要）
+
+pptxgenjs の `LAYOUT_16x9` は **10" × 5.625"** であり、テンプレート（通常 13.33" × 7.5"）とサイズが異なる。
+
+**推奨手順**:
+
+1. テンプレートサイズを取得
+2. `defineLayout()` でテンプレートと同じサイズを定義
+3. 全座標を SLIDE_WIDTH/SLIDE_HEIGHT 変数で計算
+
+```powershell
+# テンプレートサイズを取得
+$templateSize = python -c "from pptx import Presentation; p=Presentation('$template'); print(f'{p.slide_width.inches},{p.slide_height.inches}')"
+$sizes = $templateSize -split ','
+$slideWidth = [double]$sizes[0]
+$slideHeight = [double]$sizes[1]
+
+# pptxgenjs スクリプトを動的に更新
+$jsContent = Get-Content "scripts/my_diagram.js" -Raw
+$jsContent = $jsContent -replace 'width: [\d.]+, height: [\d.]+', "width: $slideWidth, height: $slideHeight"
+$jsContent | Set-Content "scripts/my_diagram.js" -Encoding UTF8
+```
+
+### 図形スライドの正しい位置への挿入
+
+`merge_slides.py` は末尾追加のみ。特定位置に挿入する場合は `insert_diagram_slides.py` を使用：
+
+```powershell
+# 挿入設定を作成
+$insertConfig = @"
+{
+  "insertions": [
+    {"source_index": 0, "target_position": 4, "layout_name": "タイトルとコンテンツ"},
+    {"source_index": 1, "target_position": 7, "layout_name": "タイトルとコンテンツ"}
+  ]
+}
+"@
+$insertConfig | Set-Content "output_manifest/${base}_insert_config.json" -Encoding UTF8
+
+# 挿入実行
+python scripts/insert_diagram_slides.py $basePptx $diagramsPptx $finalPptx --config "output_manifest/${base}_insert_config.json"
+```
 
 ## preserve 方式専用ツール（⚠️ experimental）
 

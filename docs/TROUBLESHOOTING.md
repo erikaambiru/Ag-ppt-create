@@ -2,7 +2,7 @@
 
 過去に発生した問題と対策の記録。スクリプト改修により自動対処されているものが多い。
 
-> 📅 最終更新: 2025-12-14（#48 追加: サブタイトル位置調整時のサイズリセット問題）
+> 📅 最終更新: 2025-12-17（#49, #50 追加: pptxgenjs スライドサイズ問題、図形スライド挿入位置問題）
 
 ---
 
@@ -56,6 +56,8 @@
 46. [暗い背景でテキストが黒のまま表示される](#46-暗い背景でテキストが黒のまま表示される問題)
 47. [アイコン/ロゴが大きく表示される（B/C 方式）](#47-アイコンロゴが大きく表示される問題bc-方式)
 48. [サブタイトルが縦に 1 文字ずつ表示される](#48-サブタイトルが縦に1文字ずつ表示される問題)
+49. [pptxgenjs でスライド右端・下端にはみ出す](#49-pptxgenjs-でスライド右端下端にはみ出す問題)
+50. [merge_slides.py で図形スライドが末尾に追加される](#50-merge_slidespy-で図形スライドが末尾に追加される問題)
 
 ---
 
@@ -1447,3 +1449,118 @@ subtitle_placeholder.height = original_height
 | セクションスライド | サブタイトル（BODY プレースホルダー）     |
 
 > 💡 この問題は、プレースホルダーの位置を動的に調整するすべての箇所で発生する可能性があります。
+
+---
+
+## 49. pptxgenjs でスライド右端・下端にはみ出す問題
+
+| 項目     | 内容                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| **症状** | pptxgenjs で生成した図形やテキストがスライドの右端・下端をはみ出す                               |
+| **原因** | pptxgenjs の `LAYOUT_16x9` は **10" × 5.625"** であり、13.33" 幅を想定したハードコードがはみ出す |
+| **対策** | `defineLayout()` でテンプレートサイズに合わせる。座標は変数で管理                                |
+| **確認** | `console.log(pptx.presLayout)` で実際のサイズを確認                                              |
+| **状態** | ✅ 文書化（設計原則 Dynamic Context で対応）                                                     |
+
+### 技術詳細
+
+pptxgenjs の組み込みレイアウトサイズ：
+
+| レイアウト名  | 幅     | 高さ   | 備考                                |
+| ------------- | ------ | ------ | ----------------------------------- |
+| `LAYOUT_16x9` | 10.0"  | 5.625" | pptxgenjs デフォルト                |
+| `LAYOUT_WIDE` | 13.33" | 7.5"   | PowerPoint 標準ワイドスクリーン相当 |
+| カスタム      | 任意   | 任意   | `defineLayout()` で定義             |
+
+### 修正コード
+
+```javascript
+// ❌ NG: 13.33インチ幅を想定したハードコード
+const x = 12.0; // 10インチスライドではみ出す
+
+// ✅ OK: defineLayout でテンプレートサイズに合わせる
+pptx.defineLayout({ name: "TEMPLATE", width: 13.33, height: 7.5 });
+pptx.layout = "TEMPLATE";
+
+const SLIDE_WIDTH = 13.33;
+const SLIDE_HEIGHT = 7.5;
+
+// 全座標を変数ベースで計算
+const boxX = SLIDE_WIDTH * 0.05; // 5% マージン
+const boxW = SLIDE_WIDTH * 0.9; // 90% 幅
+```
+
+### PowerShell でテンプレートサイズを取得して適用
+
+```powershell
+# テンプレートサイズを取得
+$templateSize = python -c "from pptx import Presentation; p=Presentation('$template'); print(f'{p.slide_width.inches},{p.slide_height.inches}')"
+$sizes = $templateSize -split ','
+$slideWidth = [double]$sizes[0]
+$slideHeight = [double]$sizes[1]
+
+# pptxgenjs スクリプトを動的に更新
+$jsContent = Get-Content "scripts/my_diagram.js" -Raw
+$jsContent = $jsContent -replace 'width: [\d.]+, height: [\d.]+', "width: $slideWidth, height: $slideHeight"
+$jsContent | Set-Content "scripts/my_diagram.js" -Encoding UTF8
+```
+
+---
+
+## 50. merge_slides.py で図形スライドが末尾に追加される問題
+
+| 項目     | 内容                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| **症状** | pptxgenjs で生成した図形スライドがプレゼンテーションの末尾に追加される                           |
+| **原因** | `merge_slides.py` は `--position` オプションで先頭か末尾を指定できるが、任意位置への挿入は非対応 |
+| **対策** | `insert_diagram_slides.py` を使用して任意の位置に挿入                                            |
+| **確認** | 挿入設定 JSON で `source_index` と `target_position` を指定                                      |
+| **状態** | ✅ 新スクリプト追加で対応                                                                        |
+
+### 使用方法
+
+1. **挿入設定 JSON を作成**:
+
+```json
+{
+  "insertions": [
+    {
+      "source_index": 0,
+      "target_position": 4,
+      "layout_name": "タイトルとコンテンツ"
+    },
+    {
+      "source_index": 1,
+      "target_position": 7,
+      "layout_name": "タイトルとコンテンツ"
+    },
+    {
+      "source_index": 2,
+      "target_position": 10,
+      "layout_name": "タイトルとコンテンツ"
+    }
+  ]
+}
+```
+
+- `source_index`: 図形 PPTX 内のスライド番号（0 始まり）
+- `target_position`: 挿入先の位置（0 始まり、その位置の後ろに挿入）
+- `layout_name`: 使用するレイアウト名
+
+2. **挿入実行**:
+
+```powershell
+python scripts/insert_diagram_slides.py base.pptx diagrams.pptx output.pptx --config insert_config.json
+```
+
+### 自動スケーリング
+
+`insert_diagram_slides.py` は図形 PPTX とベース PPTX のサイズが異なる場合、自動的にスケーリングを行います。
+
+```
+Base size:     13.33" x 7.50"
+Diagrams size: 10.00" x 5.63"
+Scale: 133.33% x 133.33%
+```
+
+> 💡 テンプレートと pptxgenjs 出力のサイズを事前に統一しておくと、スケーリングが不要になり品質が向上します。
