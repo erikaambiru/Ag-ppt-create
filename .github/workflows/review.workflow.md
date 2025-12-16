@@ -4,34 +4,36 @@
 PPTX 生成パイプラインにおける品質レビューの自動化ワークフロー。
 
 > **責務分離**:
+>
 > - JSON レビュー → `json-reviewer.agent.md`
 > - PPTX レビュー → `pptx-reviewer.agent.md`
 
 ## 概要
+```
 
-```
-TRANSLATE完了
-    ↓
+TRANSLATE 完了
+↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    JSON Review (REVIEW_JSON)                 │
-│  ┌─────────────────┐    ┌─────────────────┐                 │
-│  │validate_content │ → │ JSON Reviewer   │ → PASS/WARN/FAIL│
-│  └─────────────────┘    └─────────────────┘                 │
+│ JSON Review (REVIEW_JSON) │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │validate_content │ → │ JSON Reviewer │ → PASS/WARN/FAIL│
+│ └─────────────────┘ └─────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
-    ↓ PASS/WARN(確認後)
+↓ PASS/WARN(確認後)
 BUILD (create_from_template.py)
-    ↓
+↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    PPTX Review (REVIEW_PPTX)                 │
-│  ┌─────────────────┐    ┌─────────────────┐                 │
-│  │ validate_pptx   │ → │ PPTX Reviewer   │ → PASS/WARN/FAIL│
-│  └─────────────────┘    └─────────────────┘                 │
-│         ↓ FAIL               ↓ issues found                  │
-│    即時差し戻し         修正提案生成                         │
+│ PPTX Review (REVIEW_PPTX) │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │ validate_pptx │ → │ PPTX Reviewer │ → PASS/WARN/FAIL│
+│ └─────────────────┘ └─────────────────┘ │
+│ ↓ FAIL ↓ issues found │
+│ 即時差し戻し 修正提案生成 │
 └─────────────────────────────────────────────────────────────┘
-    ↓
-DONE または 差し戻し（最大3回）→ ESCALATE
-```
+↓
+DONE または 差し戻し（最大 3 回）→ ESCALATE
+
+````
 
 ---
 
@@ -56,11 +58,12 @@ BUILD 前に content.json の品質を検証する。
 ```powershell
 python scripts/validate_content.py "output_manifest/${base}_content_ja.json"
 # exit code: 0=PASS, 1=FAIL, 2=WARN
-```
+````
 
 ### Step 1-2: AI レビュー (JSON Reviewer Agent)
 
 **入力**:
+
 - Step 1-1 の検証結果
 - `output_manifest/{base}_content_ja.json`
 
@@ -82,6 +85,7 @@ python scripts/validate_content.py "output_manifest/${base}_content_ja.json"
 JSON Review が PASS（または WARN 確認後続行）の場合に実行。
 
 **コマンド**:
+
 ```powershell
 python scripts/create_from_template.py $template "output_manifest/${base}_content_ja.json" "output_ppt/${base}.pptx"
 ```
@@ -95,6 +99,7 @@ BUILD 完了後に生成された PPTX の品質を検証する。
 ### Step 3-1: 自動検証 (validate_pptx.py)
 
 **入力**:
+
 - `output_ppt/{base}.pptx`
 - `output_manifest/{base}_content_ja.json`
 
@@ -108,6 +113,7 @@ BUILD 完了後に生成された PPTX の品質を検証する。
 | 署名有無 | 先頭/末尾ノート | INFO |
 
 **コマンド**:
+
 ```powershell
 python scripts/validate_pptx.py "output_ppt/${base}.pptx" "output_manifest/${base}_content_ja.json"
 # exit code: 0=PASS, 1=FAIL, 2=WARN
@@ -118,6 +124,7 @@ python scripts/validate_pptx.py "output_ppt/${base}.pptx" "output_manifest/${bas
 AI レビュー用に PPTX 内容をテキスト化。
 
 **コマンド**:
+
 ```powershell
 python scripts/review_pptx.py "output_ppt/${base}.pptx"
 ```
@@ -127,6 +134,7 @@ python scripts/review_pptx.py "output_ppt/${base}.pptx"
 ### Step 3-3: AI レビュー (PPTX Reviewer Agent)
 
 **入力**:
+
 - Step 3-1 の検証結果
 - Step 3-2 のコンテンツ抽出結果
 
@@ -162,12 +170,12 @@ else:
 
 ### 判定マトリクス
 
-| エラー数 | 警告数 | 判定 | アクション |
-|---------|-------|------|-----------|
-| 0 | 0 | ✅ PASS | DONE へ進む |
-| 0 | 1-3 | ⚠️ WARN (minor) | ユーザー確認後 DONE |
-| 0 | 4+ | ⚠️ WARN (major) | 修正推奨、ユーザー確認 |
-| 1+ | - | ❌ FAIL | 差し戻し（最大 3 回） |
+| エラー数 | 警告数 | 判定            | アクション             |
+| -------- | ------ | --------------- | ---------------------- |
+| 0        | 0      | ✅ PASS         | DONE へ進む            |
+| 0        | 1-3    | ⚠️ WARN (minor) | ユーザー確認後 DONE    |
+| 0        | 4+     | ⚠️ WARN (major) | 修正推奨、ユーザー確認 |
+| 1+       | -      | ❌ FAIL         | 差し戻し（最大 3 回）  |
 
 ### レポート保存
 
@@ -180,14 +188,14 @@ output_manifest/{base}_review_report.md
 
 ## 差し戻しポリシー
 
-| フェーズ | 問題の種類 | 差し戻し先 | アクション |
-|---------|----------|----------|-----------|
-| REVIEW_JSON | スキーマ違反 | EXTRACT | reconstruct_analyzer 再実行 |
-| REVIEW_JSON | 翻訳エラー | TRANSLATE | Localizer 再実行 |
-| REVIEW_JSON | ノート不足 | TRANSLATE | Localizer にノート充実依頼 |
-| REVIEW_PPTX | スライド数不一致 | BUILD | 再生成 |
-| REVIEW_PPTX | レイアウト崩れ | PREPARE_TEMPLATE | テンプレート再診断 |
-| **3回失敗** | 任意 | **ESCALATE** | 人間介入待ち |
+| フェーズ     | 問題の種類       | 差し戻し先       | アクション                  |
+| ------------ | ---------------- | ---------------- | --------------------------- |
+| REVIEW_JSON  | スキーマ違反     | EXTRACT          | reconstruct_analyzer 再実行 |
+| REVIEW_JSON  | 翻訳エラー       | TRANSLATE        | Localizer 再実行            |
+| REVIEW_JSON  | ノート不足       | TRANSLATE        | Localizer にノート充実依頼  |
+| REVIEW_PPTX  | スライド数不一致 | BUILD            | 再生成                      |
+| REVIEW_PPTX  | レイアウト崩れ   | PREPARE_TEMPLATE | テンプレート再診断          |
+| **3 回失敗** | 任意             | **ESCALATE**     | 人間介入待ち                |
 
 > 詳細: `.github/instructions/error-recovery.instructions.md`
 
@@ -279,4 +287,7 @@ if ($LASTEXITCODE -eq 0) {
 - 自動検証(PPTX): `scripts/validate_pptx.py`
 - コンテンツ抽出: `scripts/review_pptx.py`
 - エラーリカバリ: `.github/instructions/error-recovery.instructions.md`
+
+```
+
 ```

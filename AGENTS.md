@@ -18,29 +18,29 @@ PPTX 自動生成エージェント定義。
 
 ## ドキュメント SSOT マップ
 
-| トピック             | 定義元（SSOT）                                                 |
-| -------------------- | -------------------------------------------------------------- |
-| PLAN フェーズ確認    | `.github/instructions/plan-phase.instructions.md`              |
-| 命名規則・箇条書き   | `.github/instructions/common.instructions.md`                  |
-| 品質ガイドライン     | `.github/instructions/quality-guidelines.instructions.md`      |
-| ツール使用フロー     | `.github/instructions/tools-reference.instructions.md`         |
-| IR スキーマ          | `workspace/content.schema.json`                                |
-| **エラーリカバリ**   | **`.github/instructions/error-recovery.instructions.md`**      |
-| **スクリプト依存**   | **`.github/instructions/script-dependencies.instructions.md`** |
-| **レビューワークフロー** | **`.github/workflows/review.workflow.md`**                 |
+| トピック                 | 定義元（SSOT）                                                 |
+| ------------------------ | -------------------------------------------------------------- |
+| PLAN フェーズ確認        | `.github/instructions/plan-phase.instructions.md`              |
+| 命名規則・箇条書き       | `.github/instructions/common.instructions.md`                  |
+| 品質ガイドライン         | `.github/instructions/quality-guidelines.instructions.md`      |
+| ツール使用フロー         | `.github/instructions/tools-reference.instructions.md`         |
+| IR スキーマ              | `workspace/content.schema.json`                                |
+| **エラーリカバリ**       | **`.github/instructions/error-recovery.instructions.md`**      |
+| **スクリプト依存**       | **`.github/instructions/script-dependencies.instructions.md`** |
+| **レビューワークフロー** | **`.github/workflows/review.workflow.md`**                     |
 
 ---
 
 ## エージェント一覧
 
-| エージェント      | マニフェスト                             | 役割                                       |
-| ----------------- | ---------------------------------------- | ------------------------------------------ |
-| **Brainstormer**  | `.github/agents/brainstormer.agent.md`   | 壁打ち対話でインプット収集 → proposal.json |
-| Orchestrator      | `.github/agents/orchestrator.agent.md`   | 状態管理・計画・リトライ制御               |
-| Localizer         | `.github/agents/localizer.agent.md`      | 翻訳のみ（AI 判断）                        |
-| Summarizer        | `.github/agents/summarizer.agent.md`     | 要約・再構成（AI 判断）                    |
-| **JSON Reviewer** | `.github/agents/json-reviewer.agent.md`  | content.json レビュー（翻訳品質・構造）    |
-| **PPTX Reviewer** | `.github/agents/pptx-reviewer.agent.md`  | PPTX レビュー（視覚・ノート・CTA 品質）    |
+| エージェント      | マニフェスト                            | 役割                                       |
+| ----------------- | --------------------------------------- | ------------------------------------------ |
+| **Brainstormer**  | `.github/agents/brainstormer.agent.md`  | 壁打ち対話でインプット収集 → proposal.json |
+| Orchestrator      | `.github/agents/orchestrator.agent.md`  | 状態管理・計画・リトライ制御               |
+| Localizer         | `.github/agents/localizer.agent.md`     | 翻訳のみ（AI 判断）                        |
+| Summarizer        | `.github/agents/summarizer.agent.md`    | 要約・再構成（AI 判断）                    |
+| **JSON Reviewer** | `.github/agents/json-reviewer.agent.md` | content.json レビュー（翻訳品質・構造）    |
+| **PPTX Reviewer** | `.github/agents/pptx-reviewer.agent.md` | PPTX レビュー（視覚・ノート・CTA 品質）    |
 
 > ⚠️ `reviewer.agent.md` は `json-reviewer.agent.md` に改名・分離されました。
 

@@ -4,17 +4,17 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 
 ## 参照ドキュメント
 
-| ドキュメント                                                                                       | 説明                                      |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| [AGENTS.md](../AGENTS.md)                                                                          | エージェント一覧とワークフロー            |
-| [agents/brainstormer.agent.md](agents/brainstormer.agent.md)                                       | 壁打ちエージェント（インプット収集）      |
-| [agents/json-reviewer.agent.md](agents/json-reviewer.agent.md)                                     | JSON レビューエージェント（翻訳品質）     |
-| [agents/pptx-reviewer.agent.md](agents/pptx-reviewer.agent.md)                                     | PPTX レビューエージェント                 |
-| [instructions/plan-phase.instructions.md](instructions/plan-phase.instructions.md)                 | PLAN フェーズ確認プロセス（★ 必須）       |
-| [instructions/quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) | 品質ガイドライン                          |
-| [instructions/tools-reference.instructions.md](instructions/tools-reference.instructions.md)       | ツール使用ルール・フロー                  |
-| [instructions/common.instructions.md](instructions/common.instructions.md)                         | 命名規則・箇条書きルール                  |
-| [agents/\*.agent.md](agents/)                                                                      | 各エージェント定義                        |
+| ドキュメント                                                                                       | 説明                                  |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [AGENTS.md](../AGENTS.md)                                                                          | エージェント一覧とワークフロー        |
+| [agents/brainstormer.agent.md](agents/brainstormer.agent.md)                                       | 壁打ちエージェント（インプット収集）  |
+| [agents/json-reviewer.agent.md](agents/json-reviewer.agent.md)                                     | JSON レビューエージェント（翻訳品質） |
+| [agents/pptx-reviewer.agent.md](agents/pptx-reviewer.agent.md)                                     | PPTX レビューエージェント             |
+| [instructions/plan-phase.instructions.md](instructions/plan-phase.instructions.md)                 | PLAN フェーズ確認プロセス（★ 必須）   |
+| [instructions/quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) | 品質ガイドライン                      |
+| [instructions/tools-reference.instructions.md](instructions/tools-reference.instructions.md)       | ツール使用ルール・フロー              |
+| [instructions/common.instructions.md](instructions/common.instructions.md)                         | 命名規則・箇条書きルール              |
+| [agents/\*.agent.md](agents/)                                                                      | 各エージェント定義                    |
 
 > 📖 **設計原則（SSOT, Agent vs Script, IR, Fail Fast, Human in the Loop）** は [AGENTS.md](../AGENTS.md) を参照。
 
