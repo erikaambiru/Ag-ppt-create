@@ -7,7 +7,9 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 | ドキュメント                                                                                       | 説明                                      |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | [AGENTS.md](../AGENTS.md)                                                                          | エージェント一覧とワークフロー            |
-| [agents/brainstormer.agent.md](agents/brainstormer.agent.md)                                       | 壁打ちエージェント（インプット収集）★ NEW |
+| [agents/brainstormer.agent.md](agents/brainstormer.agent.md)                                       | 壁打ちエージェント（インプット収集）      |
+| [agents/json-reviewer.agent.md](agents/json-reviewer.agent.md)                                     | JSON レビューエージェント（翻訳品質）     |
+| [agents/pptx-reviewer.agent.md](agents/pptx-reviewer.agent.md)                                     | PPTX レビューエージェント                 |
 | [instructions/plan-phase.instructions.md](instructions/plan-phase.instructions.md)                 | PLAN フェーズ確認プロセス（★ 必須）       |
 | [instructions/quality-guidelines.instructions.md](instructions/quality-guidelines.instructions.md) | 品質ガイドライン                          |
 | [instructions/tools-reference.instructions.md](instructions/tools-reference.instructions.md)       | ツール使用ルール・フロー                  |
@@ -31,13 +33,29 @@ PPTX 自動生成プロジェクト向けの共通ガードレール。
 - JavaScript/Node: ES Modules、async/await
 - 生成物は ASCII 優先
 
-## ターミナル操作（★ 重要）
+## ターミナル操作（★ 重要・必ず守ること）
 
-- **コマンド実行前にカレントディレクトリを確認**: `Get-Location` または `pwd`
-- **ワークスペースルートに移動してから実行**: `Set-Location "D:\03_github\Ag-ppt-create"`
-- 相対パスを使用するスクリプトは必ずプロジェクトルートから実行すること
+> 🚨 **コマンド実行前に必ずカレントディレクトリを確認すること！**
+> 間違ったディレクトリで実行すると、親フォルダの `.git` を参照したり、ファイルが見つからないエラーが発生します。
+
+### 必須手順
+
+1. **コマンド実行前にカレントディレクトリを確認**: `Get-Location` または `pwd`
+2. **ワークスペースルートに移動してから実行**: `Set-Location "D:\03_github\Ag-ppt-create"`
+3. 相対パスを使用するスクリプトは必ずプロジェクトルートから実行すること
+
+### git コマンドの注意点
+
 - **git コマンドは必ずリポジトリルートで実行**: `cd` が省略されると親ディレクトリの `.git` を参照する可能性あり
-- **複合コマンドでは `cd` を最初に**: `cd "D:\03_github\Ag-ppt-create"; git status` のように明示的に移動
+- **複合コマンドでは `Set-Location` を最初に**: `Set-Location "D:\03_github\Ag-ppt-create"; git status` のように明示的に移動
+
+### 推奨パターン
+
+```powershell
+# ★ 必ずこの形式でコマンドを実行
+Set-Location "D:\03_github\Ag-ppt-create"; git status
+Set-Location "D:\03_github\Ag-ppt-create"; python scripts/xxx.py
+```
 
 ## I/O 契約
 

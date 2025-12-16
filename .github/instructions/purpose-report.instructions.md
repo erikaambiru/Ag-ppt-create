@@ -533,8 +533,8 @@ Appendix D: Q&A想定
 ## 参照
 
 - `.github/instructions/template.instructions.md` - テンプレート操作
-- `.github/agents/content.agent.md` - Content Writer 仕様
-- `.github/agents/reviewer.agent.md` - レビュー観点
+- `.github/agents/json-reviewer.agent.md` - JSON レビュー観点
+- `.github/agents/pptx-reviewer.agent.md` - PPTX レビュー観点
 
 ---
 

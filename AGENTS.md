@@ -27,19 +27,22 @@ PPTX 自動生成エージェント定義。
 | IR スキーマ          | `workspace/content.schema.json`                                |
 | **エラーリカバリ**   | **`.github/instructions/error-recovery.instructions.md`**      |
 | **スクリプト依存**   | **`.github/instructions/script-dependencies.instructions.md`** |
-| **レビュー実行順序** | **`.github/agents/reviewer.agent.md`**                         |
+| **レビューワークフロー** | **`.github/workflows/review.workflow.md`**                 |
 
 ---
 
 ## エージェント一覧
 
-| エージェント     | マニフェスト                           | 役割                                       |
-| ---------------- | -------------------------------------- | ------------------------------------------ |
-| **Brainstormer** | `.github/agents/brainstormer.agent.md` | 壁打ち対話でインプット収集 → proposal.json |
-| Orchestrator     | `.github/agents/orchestrator.agent.md` | 状態管理・計画・リトライ制御               |
-| Localizer        | `.github/agents/localizer.agent.md`    | 翻訳のみ（AI 判断）                        |
-| Summarizer       | `.github/agents/summarizer.agent.md`   | 要約・再構成（AI 判断）                    |
-| Reviewer         | `.github/agents/reviewer.agent.md`     | 品質レビュー（JSON・PPTX 両対応）          |
+| エージェント      | マニフェスト                             | 役割                                       |
+| ----------------- | ---------------------------------------- | ------------------------------------------ |
+| **Brainstormer**  | `.github/agents/brainstormer.agent.md`   | 壁打ち対話でインプット収集 → proposal.json |
+| Orchestrator      | `.github/agents/orchestrator.agent.md`   | 状態管理・計画・リトライ制御               |
+| Localizer         | `.github/agents/localizer.agent.md`      | 翻訳のみ（AI 判断）                        |
+| Summarizer        | `.github/agents/summarizer.agent.md`     | 要約・再構成（AI 判断）                    |
+| **JSON Reviewer** | `.github/agents/json-reviewer.agent.md`  | content.json レビュー（翻訳品質・構造）    |
+| **PPTX Reviewer** | `.github/agents/pptx-reviewer.agent.md`  | PPTX レビュー（視覚・ノート・CTA 品質）    |
+
+> ⚠️ `reviewer.agent.md` は `json-reviewer.agent.md` に改名・分離されました。
 
 ## スクリプト一覧
 
@@ -48,6 +51,7 @@ PPTX 自動生成エージェント定義。
 | `classify_input.py`        | 入力分類・方式判定                         | -                            |
 | `validate_content.py`      | IR スキーマ検証                            | -                            |
 | `validate_pptx.py`         | PPTX 検証                                  | -                            |
+| `review_pptx.py`           | PPTX コンテンツ抽出・レビュー用 ★ NEW      | -                            |
 | `create_from_template.py`  | PPTX 生成                                  | AutoFit 無効化、位置調整     |
 | `create_clean_template.py` | 元 PPTX からクリーンテンプレート生成       | 縦文字防止、装飾削除         |
 | `diagnose_template.py`     | テンプレート品質診断                       | -                            |
@@ -106,9 +110,9 @@ PPTX 自動生成エージェント定義。
 | EXTRACT          | スクリプト群            | 画像抽出 + content.json 生成（並列可）        |
 | SUMMARIZE        | Summarizer              | 枚数削減時のみ：要約・再構成                  |
 | TRANSLATE        | Localizer               | content.json → content_ja.json                |
-| REVIEW(JSON)     | Reviewer                | 品質チェック → 合否判定                       |
+| **REVIEW(JSON)** | **JSON Reviewer**       | content.json 品質チェック → 合否判定          |
 | BUILD            | create_from_template.py | PPTX 生成（自動位置調整・AutoFit 制御）       |
-| REVIEW(PPTX)     | Reviewer                | 最終確認 → 合否判定                           |
+| **REVIEW(PPTX)** | **PPTX Reviewer**       | 視覚・ノート・CTA の品質レビュー → 合否判定   |
 | DONE             | Orchestrator            | PowerPoint 起動（オプション）                 |
 | ESCALATE         | workflow_tracer.py      | 3 回失敗時の人間エスカレーション              |
 

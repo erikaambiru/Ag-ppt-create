@@ -2,7 +2,7 @@
 
 **このファイルがエラーリカバリに関するルールの SSOT（Single Source of Truth）です。**
 
-> 📖 参照元: AGENTS.md, orchestrator.agent.md, reviewer.agent.md
+> 📖 参照元: AGENTS.md, orchestrator.agent.md, json-reviewer.agent.md, pptx-reviewer.agent.md
 
 ---
 
